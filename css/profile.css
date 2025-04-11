@@ -1,0 +1,632 @@
+/* Estilos para el perfil de usuario de Scrakk */
+
+/* Avatar y estado del usuario */
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #2f3136;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-avatar-large {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background-color: #2f3136;
+    overflow: hidden;
+    position: relative;
+    margin: 0 auto 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 4px solid #313338;
+}
+
+.profile-avatar-large img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Indicadores de estado del usuario */
+.status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    border: 2px solid #2f3136;
+}
+
+.status-dot.online {
+    background-color: #10b981;
+}
+
+.status-dot.idle {
+    background-color: #f59e0b;
+}
+
+.status-dot.dnd {
+    background-color: #ef4444;
+}
+
+.status-dot.invisible {
+    background-color: #6b7280;
+}
+
+/* Contenedor del perfil de usuario */
+.user-profile-container {
+    padding: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: auto;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.user-profile:hover {
+    background-color: #4f545c;
+}
+
+.user-info {
+    margin-left: 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+.user-name {
+    font-weight: 600;
+    color: #ffffff;
+    font-size: 14px;
+}
+
+.user-status {
+    font-size: 12px;
+    color: #a3a6aa;
+}
+
+/* Estilos del indicador de estado */
+.status-circle {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 5px;
+}
+
+.status-circle.online {
+    background-color: #10b981;
+}
+
+.status-circle.idle {
+    background-color: #f59e0b;
+}
+
+.status-circle.dnd {
+    background-color: #ef4444;
+}
+
+.status-circle.invisible {
+    background-color: #6b7280;
+}
+
+/* Botón de logout */
+.logout-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin-top: 10px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    width: 100%;
+    font-size: 14px;
+}
+
+.logout-button:hover {
+    background-color: #dc2626;
+}
+
+.logout-button i {
+    margin-right: 8px;
+}
+
+/* Status options */
+.status-options {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.status-option {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    background-color: #2f3136;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.status-option:hover {
+    background-color: #36393f;
+}
+
+.status-option.active {
+    border: 1px solid #5865f2;
+    background-color: #36393f;
+}
+
+.status-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+/* Amigos y actividad */
+.friends-activity {
+    margin-top: 20px;
+    padding: 0 20px;
+}
+
+.friends-activity h3 {
+    font-size: 16px;
+    margin-bottom: 10px;
+    color: #ffffff;
+}
+
+.activity-container {
+    background-color: #2f3136;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 10px;
+}
+
+.no-activity {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #a3a6aa;
+    text-align: center;
+    padding: 20px 0;
+}
+
+.no-activity i {
+    font-size: 48px;
+    margin-bottom: 10px;
+    opacity: 0.7;
+}
+
+/* Lista de amigos */
+.friend-list {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.friend-item {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    cursor: pointer;
+}
+
+.friend-item:hover {
+    background-color: #36393f;
+}
+
+.friend-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    overflow: hidden;
+    position: relative;
+    margin-right: 10px;
+    background-color: #2f3136;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.friend-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.friend-info {
+    flex-grow: 1;
+}
+
+.friend-name {
+    font-weight: 500;
+    color: #ffffff;
+    font-size: 14px;
+}
+
+.friend-status {
+    font-size: 12px;
+    color: #a3a6aa;
+}
+
+/* Botón de añadir amigo */
+.add-friend-btn {
+    background-color: #5865f2;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-size: 14px;
+}
+
+.add-friend-btn:hover {
+    background-color: #4752c4;
+}
+
+.add-friend-btn i {
+    font-size: 14px;
+}
+
+/* Campo para subir avatares */
+.avatar-upload {
+    margin-top: 15px;
+}
+
+.avatar-upload label {
+    display: block;
+    margin-bottom: 8px;
+    color: #a3a6aa;
+    font-size: 14px;
+}
+
+.avatar-preview {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin: 0 auto 15px;
+    background-color: #2f3136;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid #5865f2;
+}
+
+.avatar-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.avatar-controls button {
+    background-color: #4f545c;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-size: 14px;
+}
+
+.avatar-controls button:hover {
+    background-color: #5d6269;
+}
+
+.avatar-controls button.primary {
+    background-color: #5865f2;
+}
+
+.avatar-controls button.primary:hover {
+    background-color: #4752c4;
+}
+
+.avatar-controls button.danger {
+    background-color: #ef4444;
+}
+
+.avatar-controls button.danger:hover {
+    background-color: #dc2626;
+}
+
+/* Notificaciones de perfil */
+.profile-notification {
+    background-color: #4f545c20;
+    border-left: 3px solid #5865f2;
+    padding: 10px 15px;
+    margin-bottom: 15px;
+    border-radius: 0 4px 4px 0;
+    font-size: 14px;
+}
+
+/* Botones de avatar */
+.btn-avatar-change,
+.btn-avatar-remove,
+.btn-avatar-decoration,
+.btn-profile-effect {
+    background-color: #4f545c;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin: 5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-avatar-change {
+    background-color: #5865f2;
+}
+
+.btn-avatar-change:hover {
+    background-color: #4752c4;
+    transform: translateY(-2px);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+}
+
+.btn-avatar-remove {
+    background-color: #ef4444;
+}
+
+.btn-avatar-remove:hover {
+    background-color: #dc2626;
+    transform: translateY(-2px);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+}
+
+.btn-avatar-decoration,
+.btn-profile-effect {
+    background-color: #3b82f6;
+}
+
+.btn-avatar-decoration:hover,
+.btn-profile-effect:hover {
+    background-color: #2563eb;
+    transform: translateY(-2px);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+}
+
+.avatar-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+/* Contenedor para decoración y efectos */
+.profile-avatar-section,
+.profile-banner-section,
+.profile-effect-section {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #1e1f22;
+    border-radius: 8px;
+}
+
+.profile-avatar-section label,
+.profile-banner-section label,
+.profile-effect-section label {
+    display: block;
+    color: #a3a6aa;
+    font-size: 14px;
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+
+/* Campo de pronombres */
+.pronouns-input {
+    background-color: #2f3136;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 14px;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pronouns-input:focus {
+    border-color: #5865f2;
+    box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.3);
+}
+
+.pronouns-input::placeholder {
+    color: #8e9297;
+}
+
+.profile-field .profile-value {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #2f3136;
+    padding: 8px 12px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.profile-field .profile-value:hover {
+    background-color: #36393f;
+}
+
+.profile-field .profile-value span {
+    color: #ffffff;
+    font-size: 14px;
+}
+
+.profile-field label {
+    display: block;
+    color: #8e9297;
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.profile-field {
+    margin-bottom: 16px;
+}
+
+/* Botón de guardar perfil */
+.profile-save-section {
+    margin-top: 30px;
+    padding: 15px;
+    display: flex;
+    justify-content: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 20px;
+}
+
+.btn-save-profile {
+    background-color: #5865f2;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 200px;
+}
+
+.btn-save-profile:hover {
+    background-color: #4752c4;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-save-profile:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Sección de biografía */
+.profile-bio-section {
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #1e1f22;
+    border-radius: 8px;
+}
+
+.profile-bio-section label {
+    display: block;
+    color: #a3a6aa;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+}
+
+.bio-textarea {
+    width: 100%;
+    min-height: 100px;
+    background-color: #2f3136;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    padding: 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.bio-textarea:focus {
+    border-color: #5865f2;
+    box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.3);
+}
+
+.bio-textarea::placeholder {
+    color: #8e9297;
+}
+
+/* --- NUEVO ESTILO DISCRETO PARA BOTÓN LOGOUT EN MODAL --- */
+/* Asegura que el botón de logout dentro del modal de perfil no sea rojo chillón */
+#logoutBtnProfileModal {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--color-bg-tertiary, #4f545c); /* Fondo oscuro/neutro */
+    color: var(--color-text-secondary, #d1d5db);        /* Texto grisáceo */
+    border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1)); /* Borde sutil */
+    border-radius: var(--radius-sm, 4px);
+    padding: 10px 15px; /* Ajustar si es necesario */
+    margin-top: 20px;  /* Espacio arriba */
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
+    width: 100%;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: none; /* Sin sombra por defecto */
+    text-align: center;
+}
+
+#logoutBtnProfileModal:hover {
+    background-color: var(--color-danger-hover, #dc2626); /* Rojo oscuro al pasar el ratón */
+    color: var(--color-text-primary, #ffffff);           /* Texto blanco */
+    border-color: var(--color-danger, #ef4444);          /* Borde rojo */
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);       /* Sombra roja sutil */
+}
+
+/* Estilo cuando está deshabilitado (durante el logout) */
+#logoutBtnProfileModal:disabled {
+    background-color: var(--color-bg-tertiary, #4f545c);
+    color: var(--color-text-muted, #9ca3af);
+    border-color: var(--color-border, rgba(255, 255, 255, 0.1));
+    cursor: not-allowed;
+    opacity: 0.6;
+    box-shadow: none;
+}
+
+#logoutBtnProfileModal i {
+    margin-right: 8px; /* Espacio para el icono */
+}
+/* --- FIN NUEVO ESTILO --- */ 

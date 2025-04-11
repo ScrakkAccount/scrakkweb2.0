@@ -1,0 +1,453 @@
+/* Estilos para el sistema de amigos y chat */
+
+/* Contenedor principal de la sección de amigos */
+.friends-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: var(--db-bg-primary);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Encabezado de la sección de amigos */
+.friends-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--db-border-light);
+    background-color: var(--db-bg-secondary);
+}
+
+/* Pestañas de navegación de amigos */
+.friends-tabs {
+    display: flex;
+    gap: 10px;
+}
+
+.friend-tab {
+    padding: 8px 16px;
+    border-radius: 4px;
+    background-color: transparent;
+    color: var(--db-text-secondary);
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.friend-tab:hover {
+    background-color: rgba(123, 47, 249, 0.1);
+    color: var(--db-text-primary);
+}
+
+.friend-tab.active {
+    background-color: rgba(123, 47, 249, 0.2);
+    color: var(--db-accent-primary);
+}
+
+/* Sección para añadir amigos */
+.add-friend-section {
+    padding: 16px 20px;
+    background-color: var(--db-bg-tertiary);
+    border-radius: 8px;
+    margin: 16px 20px;
+    border: 1px solid var(--db-border-light);
+}
+
+.add-friend-section label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--db-text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.add-friend-section input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--db-border-light);
+    background-color: var(--db-bg-secondary);
+    color: var(--db-text-primary);
+    margin-bottom: 8px;
+}
+
+.add-friend-section input:focus {
+    outline: none;
+    border-color: var(--db-accent-primary);
+    box-shadow: 0 0 0 2px rgba(123, 47, 249, 0.2);
+}
+
+/* Lista de amigos */
+.friend-list-container {
+    flex: 1;
+    padding: 0 20px;
+    overflow-y: auto;
+}
+
+.friend-list-container h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--db-text-secondary);
+    margin: 16px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--db-border-light);
+}
+
+.friend-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.friend-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background-color: var(--db-bg-secondary);
+    transition: background-color 0.2s ease;
+}
+
+.friend-item:hover {
+    background-color: var(--db-bg-tertiary);
+}
+
+.friend-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 12px;
+    position: relative;
+}
+
+.friend-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.friend-status {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--db-bg-secondary);
+}
+
+.friend-status.online {
+    background-color: var(--db-online);
+}
+
+.friend-status.idle {
+    background-color: var(--db-idle);
+}
+
+.friend-status.dnd {
+    background-color: var(--db-dnd);
+}
+
+.friend-status.offline {
+    background-color: var(--db-invisible);
+}
+
+.friend-info {
+    flex: 1;
+}
+
+.friend-name {
+    font-weight: 600;
+    color: var(--db-text-primary);
+    margin-bottom: 2px;
+}
+
+.friend-status-text {
+    font-size: 12px;
+    color: var(--db-text-muted);
+}
+
+.friend-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.friend-action-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--db-bg-tertiary);
+    color: var(--db-text-secondary);
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.friend-action-btn:hover {
+    background-color: var(--db-accent-primary);
+    color: white;
+}
+
+/* Solicitudes de amistad pendientes */
+.friend-request-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-radius: 8px;
+    background-color: var(--db-bg-secondary);
+    margin-bottom: 8px;
+    border-left: 3px solid var(--db-accent-primary);
+}
+
+.friend-request-info {
+    flex: 1;
+}
+
+.friend-request-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.accept-btn {
+    padding: 6px 12px;
+    border-radius: 4px;
+    background-color: var(--db-online);
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.accept-btn:hover {
+    background-color: var(--db-online-hover);
+}
+
+.reject-btn {
+    padding: 6px 12px;
+    border-radius: 4px;
+    background-color: var(--db-dnd);
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.reject-btn:hover {
+    background-color: var(--db-dnd-hover);
+}
+
+/* Chat */
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: var(--db-bg-primary);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.chat-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--db-border-light);
+    background-color: var(--db-bg-secondary);
+}
+
+.chat-header .friend-avatar {
+    width: 36px;
+    height: 36px;
+    margin-right: 12px;
+}
+
+.chat-header .friend-info {
+    flex: 1;
+}
+
+.chat-header .friend-name {
+    margin: 0;
+}
+
+.chat-messages {
+    flex: 1;
+    padding: 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.message {
+    display: flex;
+    margin-bottom: 12px;
+}
+
+.message-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    margin-right: 12px;
+}
+
+.message-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.message-content {
+    flex: 1;
+}
+
+.message-header {
+    display: flex;
+    align-items: baseline;
+    margin-bottom: 4px;
+}
+
+.message-sender {
+    font-weight: 600;
+    color: var(--db-text-primary);
+    margin-right: 8px;
+}
+
+.message-time {
+    font-size: 12px;
+    color: var(--db-text-muted);
+}
+
+.message-text {
+    color: var(--db-text-primary);
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.message.own {
+    flex-direction: row-reverse;
+}
+
+.message.own .message-avatar {
+    margin-right: 0;
+    margin-left: 12px;
+}
+
+.message.own .message-content {
+    text-align: right;
+}
+
+.chat-input-container {
+    padding: 12px 16px;
+    border-top: 1px solid var(--db-border-light);
+    background-color: var(--db-bg-secondary);
+}
+
+.chat-input-wrapper {
+    display: flex;
+    align-items: center;
+    background-color: var(--db-bg-tertiary);
+    border-radius: 8px;
+    padding: 8px 12px;
+}
+
+.chat-input {
+    flex: 1;
+    border: none;
+    background-color: transparent;
+    color: var(--db-text-primary);
+    padding: 8px;
+    font-family: inherit;
+    resize: none;
+    height: 40px;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.chat-input:focus {
+    outline: none;
+}
+
+.send-message-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--db-accent-primary);
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.send-message-btn:hover {
+    background-color: var(--db-accent-secondary);
+}
+
+/* Estilos para el modal de chat */
+#chatModal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(5px);
+}
+
+#chatModal.show {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.3s ease;
+}
+
+#chatModal .modal-content {
+    background-color: var(--db-bg-secondary);
+    border: 1px solid var(--db-border-light);
+    border-radius: 16px;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(123, 47, 249, 0.3);
+    width: 90%;
+    max-width: 800px;
+    height: 80vh;
+    max-height: 600px;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(145deg, #0c0c20, #14142e);
+}
+
+#chatModal .close-modal {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 32px;
+    height: 32px;
+    background-color: rgba(0, 0, 0, 0.3);
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--db-text-secondary);
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+#chatModal .close-modal:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--db-text-primary);
+    transform: rotate(90deg);
+}

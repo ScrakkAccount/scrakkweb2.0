@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión - Scrakk</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- **** AÑADIR SUPABASE **** -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-init.js"></script> <!-- Asegúrate que la ruta sea correcta -->
+
+    <!-- **** QUITAR FIREBASE **** -->
+    <!-- <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script> -->
+    <!-- <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script> -->
+    <!-- <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script> -->
+    <!-- <script src="js/firebase-config.js"></script> -->
+    <style>
+        /* CSS Variables updated from index.html */
+        :root {
+            --color-bg-primary: #030315;
+            --color-bg-secondary: #0c0c20;
+            --color-bg-tertiary: #151530;
+            --color-accent-primary: #7b2ff9;
+            --color-accent-secondary: #4f8cff;
+            --color-accent-tertiary: #f43f5e;
+            --color-neon-purple: #bc13fe;
+            --color-neon-blue: #4a9fff;
+            --color-neon-pink: #ff2cf6;
+            --color-neon-green: #00ff8c;
+            --color-text-primary: #ffffff;
+            --color-text-secondary: #c4c7ff;
+            --color-text-muted: #8888b2;
+            --color-border-light: rgba(163, 163, 255, 0.1);
+            --color-border-glow: rgba(123, 47, 249, 0.5);
+            --color-success: #00ffc3;
+            --color-danger: #ff5f7a;
+            --color-warning: #ffbd2f;
+            --color-info: #49c3ff;
+            --shadow-sm: 0 4px 6px rgba(0, 0, 0, 0.2);
+            --shadow-md: 0 8px 18px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 15px 40px rgba(0, 0, 0, 0.4);
+            --shadow-glow-purple: 0 0 20px rgba(123, 47, 249, 0.7);
+            --shadow-glow-blue: 0 0 20px rgba(79, 140, 255, 0.7);
+            --shadow-glow-pink: 0 0 20px rgba(244, 63, 94, 0.7);
+            --radius-sm: 6px;
+            --radius-md: 12px;
+            --radius-lg: 24px;
+            --radius-xl: 32px;
+            --radius-pill: 9999px;
+            --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-bounce: 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        /* Reset y base */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            position: relative;
+            background: linear-gradient(135deg, #0a0a1f, #141432, #1b1b36);
+        }
+        
+        /* Efectos de fondo */
+        .grid-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(10, 10, 31, 0), rgba(10, 10, 31, 0.8)),
+                        linear-gradient(90deg, rgba(123, 47, 249, 0.03) 1px, transparent 1px),
+                        linear-gradient(rgba(123, 47, 249, 0.03) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+            z-index: -1;
+            opacity: 0.7;
+            pointer-events: none;
+        }
+        
+        .horizon-lines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            perspective: 1000px;
+            perspective-origin: center bottom;
+            z-index: -1;
+            pointer-events: none;
+            transform-style: preserve-3d;
+        }
+        
+        .horizon-line {
+            position: absolute;
+            bottom: 0;
+            left: -100%;
+            width: 300%;
+            height: 1px;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(123, 47, 249, 0.1) 20%, 
+                rgba(79, 140, 255, 0.2) 50%, 
+                rgba(123, 47, 249, 0.1) 80%, 
+                transparent 100%);
+            box-shadow: 0 0 15px rgba(123, 47, 249, 0.3);
+            animation: pulseHorizon 3s infinite alternate;
+        }
+        
+        @keyframes pulseHorizon {
+            0% { opacity: 0.3; }
+            100% { opacity: 0.7; }
+        }
+        
+        /* Partículas */
+        .particles-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            overflow: hidden;
+        }
+        
+        .particle {
+            position: absolute;
+            pointer-events: none;
+        }
+        
+        .particle-dot {
+            width: 2px;
+            height: 2px;
+            background-color: rgba(123, 47, 249, 0.6);
+            border-radius: 50%;
+            box-shadow: 0 0 5px rgba(123, 47, 249, 0.8);
+        }
+        
+        .particle-flare {
+            background: radial-gradient(circle, rgba(79, 140, 255, 0.4) 0%, rgba(79, 140, 255, 0) 70%);
+            border-radius: 50%;
+            animation: flareFloat 20s infinite linear;
+        }
+        
+        .particle-glitch {
+            width: 3px;
+            background: linear-gradient(to bottom, rgba(123, 47, 249, 0.8), rgba(79, 140, 255, 0.5));
+        }
+        
+        @keyframes floatUpAnimation {
+            0% { transform: translateY(0) translateX(0); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100vh) translateX(20px); opacity: 0; }
+        }
+        
+        @keyframes flareFloat {
+            0% { transform: translate(0, 0); opacity: 0.3; }
+            25% { transform: translate(10px, 10vh); opacity: 0.6; }
+            50% { transform: translate(-10px, 20vh); opacity: 0.3; }
+            75% { transform: translate(5px, 30vh); opacity: 0.6; }
+            100% { transform: translate(0, 40vh); opacity: 0.3; }
+        }
+        
+        @keyframes glitchFloat {
+            0% { transform: scaleY(1) translateY(0) rotate(0deg); opacity: 0.7; }
+            20% { transform: scaleY(1.2) translateY(5px) rotate(0deg); opacity: 0.5; }
+            40% { transform: scaleY(0.8) translateY(10px) rotate(0deg); opacity: 0.7; }
+            60% { transform: scaleY(1.1) translateY(15px) rotate(0deg); opacity: 0.9; }
+            80% { transform: scaleY(0.9) translateY(20px) rotate(0deg); opacity: 0.6; }
+            100% { transform: scaleY(1) translateY(25px) rotate(0deg); opacity: 0.7; }
+        }
+        
+        .scan-effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, 
+                rgba(79, 140, 255, 0) 0%, 
+                rgba(79, 140, 255, 0.05) 50%, 
+                rgba(79, 140, 255, 0) 100%);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 2;
+            animation: scanAnimation 8s infinite;
+        }
+        
+        @keyframes scanAnimation {
+            0% { transform: translateY(-100%); opacity: 0; }
+            20% { opacity: 0.5; }
+            50% { opacity: 0.3; }
+            80% { opacity: 0.5; }
+            100% { transform: translateY(100%); opacity: 0; }
+        }
+        
+        /* Navegación - OLD STYLES REMOVED */
+        /* NEW Navbar styles from index.html */
+        nav {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 1200px;
+            padding: 0.6rem 1.5rem;
+            background: rgba(12, 12, 32, 0.8); /* Updated color */
+            backdrop-filter: blur(15px);
+            border-radius: var(--radius-pill);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            box-shadow: var(--shadow-md), 0 0 0 1px var(--color-border-light);
+            transition: transform var(--transition-bounce), box-shadow var(--transition-normal);
+            border: 1px solid transparent;
+            border-image: linear-gradient(135deg, transparent, var(--color-border-glow), transparent); /* Updated border */
+            border-image-slice: 1;
+        }
+
+        nav::before {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            background: linear-gradient(135deg, rgba(123, 47, 249, 0), rgba(79, 140, 255, 0.2), rgba(123, 47, 249, 0));
+            border-radius: var(--radius-pill);
+            z-index: -1;
+            opacity: 0;
+            transition: opacity var(--transition-normal);
+        }
+
+        nav:hover {
+            box-shadow: var(--shadow-lg), 0 0 20px var(--shadow-glow-purple); /* Updated shadow */
+            transform: translateX(-50%) translateY(-5px);
+        }
+
+        nav:hover::before {
+            opacity: 1;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px; /* Updated gap */
+            text-decoration: none;
+            transition: all var(--transition-normal);
+            position: relative;
+        }
+        
+        .logo::before {
+             content: '';
+             position: absolute;
+             width: 60px;
+             height: 60px;
+             border-radius: 50%;
+             background: radial-gradient(circle, rgba(123, 47, 249, 0.5) 0%, transparent 70%);
+             filter: blur(15px);
+             opacity: 0;
+             transition: opacity var(--transition-normal);
+         }
+
+         .logo:hover::before {
+             opacity: 1;
+        }
+
+        .logo-img {
+            height: 38px; /* Updated size */
+            transition: transform var(--transition-bounce);
+            filter: drop-shadow(0 0 8px var(--color-neon-purple)); /* Updated filter */
+            will-change: transform;
+        }
+
+        .logo-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.7rem; /* Updated size */
+            font-weight: 700;
+            color: var(--color-text-primary);
+            letter-spacing: 1.5px; /* Updated spacing */
+            position: relative;
+            transition: text-shadow var(--transition-normal);
+        }
+        
+        .logo-text::before {
+             content: attr(data-text);
+             position: absolute;
+             left: 0;
+             top: 0;
+             width: 100%;
+             height: 100%;
+             text-shadow: 0 0 15px var(--color-neon-purple);
+             background: linear-gradient(90deg, var(--color-neon-purple), var(--color-neon-blue));
+             -webkit-background-clip: text;
+             -webkit-text-fill-color: transparent;
+             background-clip: text;
+             filter: blur(0.5px);
+             opacity: 0.9;
+             z-index: -1;
+         }
+
+         .logo-text::after {
+             content: attr(data-text);
+             position: absolute;
+             left: -2px;
+             top: -2px;
+             width: 100%;
+             height: 100%;
+             opacity: 0.1;
+             filter: blur(5px);
+             background: linear-gradient(90deg, var(--color-neon-purple), var(--color-neon-blue));
+             -webkit-background-clip: text;
+             -webkit-text-fill-color: transparent;
+             background-clip: text;
+             z-index: -2;
+             animation: textPulse 2s infinite alternate;
+         }
+
+         @keyframes textPulse {
+             0% { opacity: 0.1; filter: blur(5px); }
+             100% { opacity: 0.2; filter: blur(7px); }
+        }
+
+        .logo:hover .logo-img {
+             transform: rotate(-15deg) scale(1.2);
+             filter: drop-shadow(0 0 15px var(--color-neon-purple)); /* Updated filter */
+         }
+
+         .logo:hover .logo-text {
+             text-shadow: 0 0 8px var(--color-neon-purple); /* Updated shadow */
+         }
+        
+        .logo-glitch-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(123, 47, 249, 0.5); /* Updated color */
+            opacity: 0;
+            mix-blend-mode: overlay;
+            pointer-events: none;
+        }
+        
+        .logo-glitch-effect.active {
+            animation: logoGlitch 0.2s; /* Ensure animation is defined if used */
+        }
+        
+        @keyframes logoGlitch { /* Added animation from index.html */
+             0% { opacity: 0; transform: translate(0); }
+             20% { opacity: 0.2; transform: translate(-2px, 1px); }
+             40% { opacity: 0; transform: translate(0); }
+             60% { opacity: 0.3; transform: translate(1px, -1px); }
+             80% { opacity: 0.1; transform: translate(-1px, 0); }
+             100% { opacity: 0; transform: translate(0); }
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 0.8rem; /* Updated gap */
+            align-items: center; /* Added alignment */
+        }
+
+        .nav-links a {
+            color: var(--color-text-secondary);
+            text-decoration: none;
+            padding: 0.7rem 1.2rem; /* Updated padding */
+            border-radius: var(--radius-pill);
+            transition: all var(--transition-normal);
+            font-size: 0.92rem; /* Updated size */
+            font-weight: 500;
+            position: relative;
+            overflow: hidden;
+            background: transparent; /* Explicitly set background */
+            border: 1px solid transparent; /* Added border for hover effect */
+            letter-spacing: 0.5px; /* Added letter spacing */
+        }
+        
+        .nav-links a::before {
+             content: '';
+             position: absolute;
+             top: 0;
+             left: 0;
+             width: 100%;
+             height: 100%;
+             background: linear-gradient(120deg, 
+                 rgba(123, 47, 249, 0.05), 
+                 rgba(79, 140, 255, 0.05));
+             transform: translateX(-100%);
+             transition: transform var(--transition-normal);
+             z-index: -1;
+        }
+
+        .nav-links a:hover {
+            color: var(--color-text-primary);
+            transform: translateY(-3px); /* Added transform */
+            border-color: var(--color-border-glow); /* Updated border */
+            box-shadow: 0 5px 15px rgba(123, 47, 249, 0.15); /* Updated shadow */
+        }
+        
+        .nav-links a:hover::before {
+             transform: translateX(0);
+         }
+        
+        /* Special style for the registration button (as in index.html) */
+        .nav-links a[href="registro.html"] {
+             background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary));
+             color: white;
+             box-shadow: 0 4px 15px var(--shadow-glow-purple); /* Updated shadow */
+             border: none;
+             position: relative;
+             overflow: hidden;
+         }
+
+         .nav-links a[href="registro.html"]::before {
+             content: '';
+             position: absolute;
+             top: -50%;
+             left: -50%;
+             width: 200%;
+             height: 200%;
+             background: linear-gradient(
+                 to right,
+                 transparent,
+                 rgba(255, 255, 255, 0.2),
+                 transparent
+             );
+             transform: rotate(45deg) translateX(-100%);
+             transition: transform 0.7s ease;
+         }
+
+         .nav-links a[href="registro.html"]:hover {
+             box-shadow: 0 6px 20px var(--shadow-glow-purple); /* Updated shadow */
+             transform: translateY(-3px) scale(1.05);
+         }
+
+         .nav-links a[href="registro.html"]:hover::before {
+             transform: rotate(45deg) translateX(100%);
+         }
+
+        /* Contenido principal */
+        .main-content {
+            margin-top: 130px;
+            padding: 4rem 2rem;
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+            perspective: 1000px;
+        }
+
+        /* Contenedor de vidrio holográfico */
+        .login-container {
+            max-width: 480px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 3.5rem;
+            background: rgba(12, 12, 32, 0.7);
+            border-radius: var(--radius-lg);
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-lg), 0 0 0 1px var(--color-border-light);
+            position: relative;
+            overflow: hidden;
+            transition: all var(--transition-bounce);
+            border: 1px solid transparent;
+            border-image: linear-gradient(135deg, transparent, rgba(123, 47, 249, 0.3), transparent);
+            border-image-slice: 1;
+            transform-style: preserve-3d;
+            perspective: 1000px;
+            clip-path: polygon(
+                0 10px, 
+                10px 0, 
+                100% 0, 
+                100% calc(100% - 10px), 
+                calc(100% - 10px) 100%, 
+                0 100%
+            );
+        }
+
+        .login-container::before {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            background: linear-gradient(135deg, 
+                rgba(123, 47, 249, 0), 
+                rgba(79, 140, 255, 0.2), 
+                rgba(123, 47, 249, 0));
+            border-radius: var(--radius-lg);
+            z-index: -1;
+            opacity: 0;
+            transition: opacity var(--transition-normal);
+        }
+
+        .login-container::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 50% 30%, 
+                rgba(123, 47, 249, 0.1), 
+                transparent 40%);
+            pointer-events: none;
+        }
+
+        .login-container:hover {
+            box-shadow: var(--shadow-lg), 0 0 30px rgba(123, 47, 249, 0.3);
+            transform: translateY(-10px) rotateX(2deg) rotateY(-2deg);
+        }
+
+        .login-container:hover::before {
+            opacity: 1;
+        }
+
+        /* Efecto holográfico en login */
+        .hologram-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                repeating-linear-gradient(
+                    transparent 0%,
+                    rgba(123, 47, 249, 0.02) 1px,
+                    transparent 2px,
+                    transparent 4px
+                );
+            opacity: 0.5;
+            pointer-events: none;
+            z-index: -1;
+            animation: scanHologram 3s linear infinite;
+        }
+
+        @keyframes scanHologram {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 -100px; }
+        }
+
+        /* Header del login */
+        .login-header {
+            text-align: center;
+            margin-bottom: 3rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .login-header h1 {
+            font-size: 3.2rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(90deg, var(--color-neon-purple), var(--color-neon-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 800;
+            position: relative;
+            display: inline-block;
+            transform: perspective(1000px);
+            transition: transform var(--transition-normal);
+        }
+
+        .login-header h1::before {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.3;
+            filter: blur(8px);
+            background: linear-gradient(90deg, var(--color-neon-purple), var(--color-neon-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: textPulse 2s infinite alternate;
+        }
+
+        .login-header h1::after {
+            content: '';
+            position: absolute;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 3px;
+            background: linear-gradient(90deg, 
+                transparent, 
+                var(--color-neon-purple), 
+                var(--color-neon-blue), 
+                transparent);
+            border-radius: var(--radius-pill);
+        }
+
+        .login-container:hover .login-header h1 {
+            transform: perspective(1000px) rotateX(10deg);
+        }
+
+        .login-header p {
+            color: var(--color-text-secondary);
+            font-size: 1.1rem;
+            margin-top: 1.5rem;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.8s forwards ease-out;
+            animation-delay: 0.3s;
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Grupos de formulario */
+        .form-group {
+            margin-bottom: 2rem;
+            position: relative;
+            transition: transform var(--transition-normal);
+        }
+
+        .login-container:hover .form-group {
+            transform: translateZ(10px);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 500;
+            color: var(--color-text-secondary);
+            transition: all var(--transition-fast);
+            font-size: 0.95rem;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.8s forwards ease-out;
+            animation-delay: calc(0.3s + var(--delay, 0s));
+        }
+
+        .form-group:nth-child(1) label {
+            --delay: 0.1s;
+        }
+
+        .form-group:nth-child(2) label {
+            --delay: 0.2s;
+        }
+
+        .form-group:focus-within label {
+            color: var(--color-neon-blue);
+            text-shadow: 0 0 8px rgba(79, 140, 255, 0.5);
+        }
+
+        .cyber-input {
+            width: 100%;
+            padding: 16px;
+            border: 1px solid var(--color-border-light);
+            border-radius: var(--radius-md);
+            background: rgba(21, 21, 48, 0.5);
+            color: var(--color-text-primary);
+            font-size: 1rem;
+            transition: all var(--transition-normal);
+            font-family: 'Inter', sans-serif;
+            letter-spacing: 0.5px;
+            clip-path: polygon(
+                0 0, 
+                calc(100% - 8px) 0, 
+                100% 8px, 
+                100% 100%, 
+                8px 100%, 
+                0 calc(100% - 8px)
+            );
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.8s forwards ease-out;
+            animation-delay: calc(0.4s + var(--delay, 0s));
+        }
+
+        .form-group:nth-child(1) .cyber-input,
+        .form-group:nth-child(1) .password-input-container {
+            --delay: 0.1s;
+        }
+
+        .form-group:nth-child(2) .cyber-input,
+        .form-group:nth-child(2) .password-input-container {
+            --delay: 0.2s;
+        }
+
+        .cyber-input:focus {
+            outline: none;
+            border-color: var(--color-neon-blue);
+            box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.25), 0 0 15px rgba(79, 140, 255, 0.15);
+            background: rgba(21, 21, 48, 0.8);
+        }
+
+        .cyber-input::placeholder {
+            color: var(--color-text-muted);
+        }
+
+        /* Errores de formulario */
+        .error-message {
+            color: var(--color-danger);
+            font-size: 0.85rem;
+            margin-top: 10px;
+            display: block;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all var(--transition-bounce);
+            position: relative;
+            padding-left: 20px;
+        }
+
+        .error-message::before {
+            content: '!';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 16px;
+            height: 16px;
+            background: var(--color-danger);
+            color: var(--color-bg-primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.7rem;
+        }
+
+        .error-message.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Opciones de formulario (recordarme, olvidé contraseña) */
+        .form-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.8s forwards ease-out;
+            animation-delay: 0.7s;
+        }
+
+        /* Checkbox personalizado */
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--color-text-secondary);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: color var(--transition-fast);
+            position: relative;
+        }
+
+        .checkbox-container:hover {
+            color: var(--color-text-primary);
+        }
+
+        .checkbox-container input[type="checkbox"] {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            border: 1px solid var(--color-border-light);
+            border-radius: 4px;
+            background: rgba(21, 21, 48, 0.5);
+            cursor: pointer;
+            position: relative;
+            transition: all var(--transition-normal);
+            clip-path: polygon(
+                0 0, 
+                calc(100% - 5px) 0, 
+                100% 5px, 
+                100% 100%, 
+                5px 100%, 
+                0 calc(100% - 5px)
+            );
+        }
+
+        .checkbox-container input[type="checkbox"]::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, 
+                rgba(123, 47, 249, 0.1), 
+                rgba(79, 140, 255, 0.1));
+            opacity: 0;
+            transition: opacity var(--transition-fast);
+        }
+
+        .checkbox-container:hover input[type="checkbox"]::before {
+            opacity: 1;
+        }
+
+        .checkbox-container input[type="checkbox"]:checked {
+            background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary));
+            border-color: transparent;
+        }
+
+        .checkbox-container input[type="checkbox"]:checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        /* Enlace de olvidé mi contraseña */
+        .forgot-password {
+            color: var(--color-neon-blue);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all var(--transition-normal);
+            position: relative;
+            text-shadow: 0 0 5px rgba(79, 140, 255, 0.3);
+        }
+
+        .forgot-password::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: var(--color-neon-blue);
+            transform: scaleX(0);
+            transform-origin: right;
+            transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+        }
+
+        .forgot-password:hover {
+            color: var(--color-neon-purple);
+            text-shadow: 0 0 8px rgba(123, 47, 249, 0.5);
+        }
+
+        .forgot-password:hover::after {
+            transform: scaleX(1);
+            transform-origin: left;
+            background: var(--color-neon-purple);
+            box-shadow: 0 0 10px rgba(123, 47, 249, 0.5);
+        }
+
+        /* Botón de login con estilo cyberpunk */
+        .cyber-btn {
+            width: 100%;
+            padding: 1.2rem;
+            background: linear-gradient(90deg, var(--color-accent-primary), var(--color-accent-secondary));
+            border: none;
+            color: white;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 600;
+            margin-top: 1rem;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Orbitron', sans-serif;
+            clip-path: polygon(
+                0 0, 
+                100% 0, 
+                100% calc(100% - 10px), 
+                calc(100% - 10px) 100%, 
+                0 100%
+            );
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.8s forwards ease-out;
+            animation-delay: 0.8s;
+            box-shadow: 0 5px 20px rgba(123, 47, 249, 0.3), 0 0 0 1px rgba(123, 47, 249, 0.1);
+        }
+
+        .cyber-btn::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                to right,
+                transparent,
+                rgba(255, 255, 255, 0.2),
+                transparent
+            );
+            transform: rotate(45deg) translateX(-100%);
+            transition: transform 0.7s ease;
+        }
+
+        .cyber-btn:hover {
+            background: linear-gradient(90deg, var(--color-neon-purple), var(--color-neon-blue));
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 10px 25px rgba(123, 47, 249, 0.4);
+        }
+
+        .cyber-btn:hover::before {
+            transform: rotate(45deg) translateX(100%);
+        }
+
+        .cyber-btn:active {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(123, 47, 249, 0.3);
+        }
+
+        .cyber-btn:disabled {
+            background: linear-gradient(90deg, #5c5c7a, #6e6e8c);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .cyber-btn i {
+            font-size: 1.2rem;
+            transition: transform var(--transition-normal);
+        }
+
+        .cyber-btn:hover i {
+            transform: rotate(360deg);
+        }
+
+        /* Container para input de contraseña */
+        .password-input-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.8s forwards ease-out;
+            animation-delay: calc(0.4s + var(--delay, 0s));
+        }
+
+        .password-input-container input {
+            width: 100%;
+            padding-right: 50px;
+        }
+
+        /* Botón de mostrar/ocultar contraseña */
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--color-text-muted);
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 5px;
+            border-radius: var(--radius-sm);
+            transition: all var(--transition-fast);
+            z-index: 10;
+        }
+
+        .password-toggle::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, 
+                rgba(123, 47, 249, 0.1), 
+                rgba(79, 140, 255, 0.1));
+            border-radius: var(--radius-sm);
+            opacity: 0;
+            transition: opacity var(--transition-fast);
+        }
+
+        .password-toggle:hover {
+            color: var(--color-neon-blue);
+        }
+
+        .password-toggle:hover::before {
+            opacity: 1;
+        }
+
+        /* Footer del formulario */
+        .login-footer {
+            text-align: center;
+            margin-top: 3rem;
+            position: relative;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.8s forwards ease-out;
+            animation-delay: 0.9s;
+        }
+
+        .login-footer::before {
+            content: '';
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 2px;
+            background: linear-gradient(90deg, 
+                transparent, 
+                var(--color-border-light), 
+                transparent);
+        }
+
+        .login-footer p {
+            color: var(--color-text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .login-footer a {
+            color: var(--color-neon-blue);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all var(--transition-normal);
+            position: relative;
+            text-shadow: 0 0 5px rgba(79, 140, 255, 0.3);
+        }
+
+        .login-footer a::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: var(--color-neon-blue);
+            transform: scaleX(0);
+            transform-origin: right;
+            transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+        }
+
+        .login-footer a:hover {
+            color: var(--color-neon-purple);
+            text-shadow: 0 0 8px rgba(123, 47, 249, 0.5);
+        }
+
+        .login-footer a:hover::after {
+            transform: scaleX(1);
+            transform-origin: left;
+            background: var(--color-neon-purple);
+            box-shadow: 0 0 10px rgba(123, 47, 249, 0.5);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            nav {
+                top: 15px;
+                width: 95%;
+                padding: 0.8rem 1.5rem;
+            }
+
+            .logo-img {
+                height: 35px;
+            }
+
+            .logo-text {
+                font-size: 1.4rem;
+            }
+
+            .nav-links {
+                gap: 0.8rem;
+            }
+
+            .nav-links a {
+                padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            }
+
+            .main-content {
+                margin-top: 120px;
+                padding: 2rem 1rem;
+            }
+
+            .login-container {
+                padding: 2rem;
+            }
+
+            .login-header h1 {
+                font-size: 2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .logo-text {
+                display: none;
+            }
+
+            .logo-img {
+                height: 40px;
+            }
+
+            .nav-links a {
+                padding: 0.5rem 0.8rem;
+                font-size: 0.85rem;
+            }
+
+            .login-container {
+                padding: 1.5rem;
+            }
+
+            .login-header h1 {
+                font-size: 1.8rem;
+            }
+
+            .form-options {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Efectos de fondo -->
+    <div class="grid-overlay"></div>
+    <div class="horizon-lines">
+        <div class="horizon-line" style="transform: rotateX(75deg) translateZ(-100px);"></div>
+        <div class="horizon-line" style="transform: rotateX(75deg) translateZ(-200px);"></div>
+        <div class="horizon-line" style="transform: rotateX(75deg) translateZ(-300px);"></div>
+        <div class="horizon-line" style="transform: rotateX(75deg) translateZ(-400px);"></div>
+        <div class="horizon-line" style="transform: rotateX(75deg) translateZ(-500px);"></div>
+    </div>
+    <div class="particles-container" id="particlesContainer"></div>
+    <div class="scan-effect"></div>
+    
+    <!-- Navbar -->
+    <nav>
+        <a href="index.html" class="logo">
+            <img src="https://i.imgur.com/8tGgGZJ.png" alt="Scrakk Logo" class="logo-img">
+            <span class="logo-text" data-text="Scrakk">Scrakk</span>
+            <div class="logo-glitch-effect" id="logoGlitch"></div>
+        </a>
+        <div class="nav-links">
+            <a href="soporte.html">Soporte</a>
+            <a href="login.html">Iniciar Sesión</a>
+            <a href="registro.html">Registrarse</a>
+        </div>
+    </nav>
+
+    <!-- Contenido principal -->
+    <main class="main-content">
+        <div class="login-container">
+            <div class="hologram-effect"></div>
+            <div class="login-header">
+                <h1 data-text="Login">Login</h1>
+                <p>Bienvenido de nuevo a Scrakk</p>
+            </div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Correo electrónico</label>
+                    <input type="email" id="email" name="email" class="cyber-input" placeholder="nombre@ejemplo.com" required>
+                    <span class="error-message" id="emailError"></span>
+                </div>
+                <div class="form-group">
+                    <label for="password">Contraseña</label>
+                    <div class="password-input-container">
+                        <input type="password" id="password" name="password" class="cyber-input" placeholder="Tu contraseña secreta" required>
+                        <button type="button" class="password-toggle" aria-label="Mostrar contraseña">
+                            <i class="far fa-eye"></i>
+                        </button>
+                    </div>
+                    <span class="error-message" id="passwordError"></span>
+                </div>
+                <div class="form-options">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="rememberMe">
+                        Recordarme
+                    </label>
+                    <a href="recuperar-password.html" class="forgot-password">¿Olvidaste tu contraseña?</a>
+                </div>
+                <button type="submit" class="cyber-btn" id="loginButton">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span id="loginButtonText">Iniciar Sesión</span>
+                </button>
+            </form>
+            <div class="login-footer">
+                <p>¿No tienes una cuenta? <a href="registro.html">Regístrate</a></p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>© 2024 Scrakk Technologies. Todos los derechos reservados.</p>
+    </footer>
+
+    <!-- Notificación -->
+    <div id="notification" class="notification">
+        <i class="fas fa-info-circle"></i>
+        <span id="notificationMessage"></span>
+    </div>
+
+    <script>
+        // Crear varios tipos de partículas
+        function createParticles() {
+            const container = document.getElementById('particlesContainer');
+            
+            // Crear partículas tipo dot
+            for (let i = 0; i < 50; i++) {
+                createParticle('particle-dot', container);
+            }
+            
+            // Crear partículas tipo flare
+            for (let i = 0; i < 10; i++) {
+                createParticle('particle-flare', container);
+            }
+            
+            // Crear partículas tipo glitch
+            for (let i = 0; i < 15; i++) {
+                createParticle('particle-glitch', container);
+            }
+        }
+        
+        function createParticle(type, container) {
+            const particle = document.createElement('div');
+            particle.className = `particle ${type}`;
+            
+            // Posición aleatoria
+            particle.style.left = `${Math.random() * 100}%`;
+            particle.style.top = `${Math.random() * 100}%`;
+            
+            // Tamaño aleatorio para partículas flare
+            if (type === 'particle-flare') {
+                const size = 50 + Math.random() * 100;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+            }
+            
+            // Animación para dots
+            if (type === 'particle-dot') {
+                particle.style.animation = `floatUpAnimation ${10 + Math.random() * 20}s infinite linear`;
+                particle.style.animationDelay = `${Math.random() * 10}s`;
+            }
+            
+            // Animación para glitch
+            if (type === 'particle-glitch') {
+                particle.style.animation = `glitchFloat ${5 + Math.random() * 10}s infinite`;
+                particle.style.animationDelay = `${Math.random() * 5}s`;
+                particle.style.height = `${20 + Math.random() * 50}px`;
+                particle.style.transform = `rotate(${Math.random() * 90}deg)`;
+            }
+            
+            container.appendChild(particle);
+        }
+        
+        // Inicializar cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', function() {
+            /* // Removido: Ya no usamos Firebase aquí
+            if (typeof firebase === 'undefined') {
+                console.error("Firebase no está definido. Verificar la carga de scripts.");
+                showNotification("Error: No se pudo cargar Firebase. Por favor, recarga la página.", "error");
+            }
+            */
+            
+            // Crear partículas
+            createParticles();
+            
+            // Verificar que supabaseClient se inicializó (mejor check)
+            if (!supabaseClient) {
+                 console.warn("Advertencia: Supabase client no parece estar inicializado al cargar el DOM. Verifica js/supabase-init.js y el orden de los scripts.");
+                 // Considera mostrar una notificación si es crítico para la página
+                 // showNotification("Error al conectar con el sistema de autenticación.", "error");
+            }
+        });
+
+        // Función para manejar el envío del formulario de login
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            console.log("Formulario de login enviado!");
+                e.preventDefault();
+
+            // Obtener valores del formulario
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            
+            console.log("Email:", email, "Password:", password ? "(tiene valor)" : "(vacío)");
+
+            // Validar que los campos no estén vacíos (Mantenemos validación básica)
+            let hasError = false;
+            if (!email) {
+                document.getElementById('emailError').textContent = 'El correo electrónico es requerido';
+                document.getElementById('emailError').classList.add('visible');
+                hasError = true;
+            }
+            if (!password) {
+                document.getElementById('passwordError').textContent = 'La contraseña es requerida';
+                document.getElementById('passwordError').classList.add('visible');
+                hasError = true;
+                }
+            if (hasError) return;
+
+            // Limpiar mensajes de error previos
+            document.getElementById('emailError').textContent = '';
+            document.getElementById('emailError').classList.remove('visible');
+            document.getElementById('passwordError').textContent = '';
+            document.getElementById('passwordError').classList.remove('visible');
+            
+            // Mostrar estado de carga
+            const loginButton = document.getElementById('loginButton');
+            const loginButtonText = document.getElementById('loginButtonText');
+            const originalText = loginButtonText.textContent;
+            
+            loginButton.disabled = true;
+            loginButtonText.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Iniciando sesión...';
+            
+            try {
+                 // Verificar que supabaseClient esté disponible
+                if (!supabaseClient) {
+                    throw new Error('Supabase client no está inicializado. Revisa js/supabase-init.js y las credenciales.');
+                }
+
+                // Iniciar sesión con Supabase
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
+                    email: email,
+                    password: password,
+                });
+
+                if (error) {
+                    // Lanzar el error para que lo capture el catch general
+                    throw error; 
+                }
+
+                if (data.user) {
+                    console.log("Inicio de sesión exitoso con Supabase. Usuario:", data.user.id);
+
+                    // **Opcional pero recomendado: Actualizar perfil en Supabase (ej: estado online)**
+                    // Esto asume que tienes una tabla 'profiles' con una columna 'status'
+                    try {
+                        const { error: profileError } = await supabaseClient
+                            .from('profiles')
+                            .update({ 
+                            status: 'online',
+                                last_seen: new Date().toISOString() // Opcional: guardar última conexión
+                            })
+                            .eq('id', data.user.id);
+                        
+                        if (profileError) {
+                            console.warn("Advertencia: No se pudo actualizar el estado del perfil en Supabase:", profileError.message);
+                            // No es un error crítico para el login, pero es bueno saberlo
+                        }
+                    } catch (profileUpdateError) {
+                         console.warn("Error inesperado al intentar actualizar perfil:", profileUpdateError);
+                    }
+                    // **Fin Opcional**
+
+                    // Mostrar notificación de éxito
+                    showNotification("¡Inicio de sesión exitoso! Redirigiendo...", "success");
+                    
+                    // Efecto de transición (opcional)
+                    document.querySelector('.login-container').style.transition = 'opacity 0.5s ease, transform 0.5s ease'; // Asegurar transición suave
+                    document.querySelector('.login-container').style.transform = 'scale(0.95) translateY(30px)';
+                    document.querySelector('.login-container').style.opacity = '0';
+                    
+                    // Redirigir al dashboard después de un breve retraso
+                    setTimeout(() => {
+                window.location.href = 'dashboard.html';
+                    }, 800); // Reducir un poco el tiempo si se quiere más rápido
+                
+                } else {
+                     // Caso improbable si no hay error pero tampoco user
+                     throw new Error('Respuesta inesperada de Supabase durante el inicio de sesión.');
+                }
+
+            } catch (error) {
+                console.error("Error de inicio de sesión (Supabase):", error);
+                
+                // Aplicar efecto de shake (opcional)
+                const loginContainer = document.querySelector('.login-container');
+                loginContainer.classList.add('shake');
+                setTimeout(() => {
+                    loginContainer.classList.remove('shake');
+                }, 500);
+                
+                let errorMessage = 'Error al iniciar sesión. Verifica tus credenciales.';
+                let displayErrorInField = true; // Para controlar si mostramos el error general o uno específico
+
+                // Limpiar errores específicos previos
+                document.getElementById('emailError').textContent = '';
+                document.getElementById('emailError').classList.remove('visible');
+                document.getElementById('passwordError').textContent = '';
+                document.getElementById('passwordError').classList.remove('visible');
+
+                if (error.message) {
+                    if (error.message.includes('Invalid login credentials')) {
+                        errorMessage = 'Correo o contraseña incorrectos.';
+                        // Mostramos el error debajo de la contraseña como más genérico
+                        document.getElementById('passwordError').textContent = errorMessage;
+                        document.getElementById('passwordError').classList.add('visible');
+                        displayErrorInField = false; // Ya mostramos error específico
+                    } else if (error.message.includes('Email not confirmed')) {
+                        errorMessage = 'Confirma tu correo electrónico para iniciar sesión.';
+                        const emailErrorSpan = document.getElementById('emailError');
+                        emailErrorSpan.innerHTML = 'Revisa tu bandeja de entrada (y spam) y haz clic en el enlace de confirmación enviado a tu correo. <a href="#" id="resendConfirmLink" style="color: var(--color-neon-blue); text-decoration: underline;">Reenviar correo</a>';
+                        emailErrorSpan.classList.add('visible');
+                        displayErrorInField = false; // Ya mostramos error específico
+
+                        // --- Opcional: Añadir lógica para reenviar confirmación --- 
+                        const resendLink = document.getElementById('resendConfirmLink');
+                        if(resendLink) {
+                            resendLink.onclick = async (e) => {
+                                e.preventDefault();
+                                const currentEmail = document.getElementById('email').value.trim();
+                                if (!currentEmail) {
+                                    showNotification('Ingresa tu correo primero.', 'warning');
+                                    return;
+                                }
+                                try {
+                                    showNotification('Reenviando correo de confirmación...', 'info');
+                                    const { error: resendError } = await supabaseClient.auth.resend({ 
+                                        type: 'signup', 
+                                        email: currentEmail 
+                                    });
+                                    if (resendError) throw resendError;
+                                    showNotification('Correo de confirmación reenviado a ' + currentEmail, 'success');
+                                } catch (resendCatchError) {
+                                    console.error("Error reenviando confirmación:", resendCatchError);
+                                    showNotification('Error al reenviar el correo: ' + (resendCatchError.message || 'Intenta más tarde'), 'error');
+                                }
+                            };
+                        }
+                        // --- Fin Opcional --- 
+
+                    } else if (error.message.includes('User disabled')) {
+                        errorMessage = 'Esta cuenta ha sido deshabilitada.';
+                    } else {
+                        errorMessage = `Error: ${error.message}`;
+                    }
+                } else if (error.toString().includes('supabaseClient no está inicializado')) {
+                    errorMessage = error.message; 
+                }
+                
+                // Mostrar notificación genérica si no se mostró un error específico en campo
+                if (displayErrorInField) {
+                showNotification(errorMessage, 'error');
+                } // Si no, el mensaje específico ya está visible en el campo
+                
+                // Restaurar el botón
+                loginButton.disabled = false;
+                loginButtonText.textContent = originalText;
+            }
+        });
+
+        // Función para mostrar/ocultar contraseña
+        document.querySelector('.password-toggle').addEventListener('click', function() {
+            const passwordInput = document.getElementById('password');
+            const icon = this.querySelector('i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+
+        // Función para mostrar notificaciones
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            const notificationMessage = document.getElementById('notificationMessage');
+            const icon = notification.querySelector('i');
+            
+            // Actualizar icono según el tipo
+            icon.className = 'fas';
+            switch (type) {
+                case 'success':
+                    icon.classList.add('fa-check-circle');
+                    notification.style.background = 'linear-gradient(90deg, rgba(0, 255, 195, 0.9), rgba(0, 207, 168, 0.9))';
+                    break;
+                case 'error':
+                    icon.classList.add('fa-exclamation-circle');
+                    notification.style.background = 'linear-gradient(90deg, rgba(255, 95, 122, 0.9), rgba(244, 63, 94, 0.9))';
+                    break;
+                case 'warning':
+                    icon.classList.add('fa-exclamation-triangle');
+                    notification.style.background = 'linear-gradient(90deg, rgba(255, 189, 47, 0.9), rgba(230, 162, 0, 0.9))';
+                    break;
+                default:
+                    icon.classList.add('fa-info-circle');
+                    notification.style.background = 'linear-gradient(90deg, rgba(73, 195, 255, 0.9), rgba(79, 140, 255, 0.9))';
+            }
+            
+            notificationMessage.textContent = message;
+            notification.className = 'notification show';
+            
+            // Ocultar después de un tiempo
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 4000);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,559 @@
+/* === DASHBOARD DESIGN - BASE LAYOUT === */
+
+/* Importar variables si es necesario (asumiendo que no están en un archivo global importado) */
+:root {
+    /* Copiando variables de login/registro para consistencia */
+    --color-bg-primary: #030315;
+    --color-bg-secondary: #0c0c20;
+    --color-bg-tertiary: #151530;
+    --color-accent-primary: #7b2ff9;
+    --color-accent-secondary: #4f8cff;
+    --color-accent-tertiary: #f43f5e;
+    --color-neon-purple: #bc13fe;
+    --color-neon-blue: #4a9fff;
+    --color-neon-pink: #ff2cf6;
+    --color-neon-green: #00ff8c;
+    --color-text-primary: #ffffff;
+    --color-text-secondary: #c4c7ff;
+    --color-text-muted: #8888b2;
+    --color-border-light: rgba(163, 163, 255, 0.1);
+    --color-border-glow: rgba(123, 47, 249, 0.5);
+    --color-success: #00ffc3;
+    --color-danger: #ff5f7a;
+    --color-warning: #ffbd2f;
+    --color-info: #49c3ff;
+    --shadow-sm: 0 4px 6px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 8px 18px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 15px 40px rgba(0, 0, 0, 0.4);
+    --shadow-glow-purple: 0 0 20px rgba(123, 47, 249, 0.7);
+    --shadow-glow-blue: 0 0 20px rgba(79, 140, 255, 0.7);
+    --shadow-glow-pink: 0 0 20px rgba(244, 63, 94, 0.7);
+    --radius-sm: 6px;
+    --radius-md: 12px;
+    --radius-lg: 24px;
+    --radius-xl: 32px;
+    --radius-pill: 9999px;
+    --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+    /* --- NUEVAS VARIABLES DEFINIDAS --- */
+    --sidebar-width-collapsed: 75px; /* Ancho inicial colapsado */
+    --sidebar-width-expanded: 260px; /* Ancho cuando se expanda (futuro) */
+    --sidebar-bg: var(--color-bg-secondary);
+    --main-content-bg: var(--color-bg-primary);
+    --border-color: var(--color-border-light);
+    --hover-bg: rgba(255, 255, 255, 0.05); /* Fondo sutil al pasar el ratón */
+    --active-bg: rgba(123, 47, 249, 0.1); /* Fondo para item activo */
+    --primary-accent: var(--color-accent-primary);
+    --primary-accent-rgb: 123, 47, 249; /* Para usar en rgba() */
+    
+    /* Colores de estado */
+    --online-color: var(--color-success);
+    --idle-color: var(--color-warning);
+    --dnd-color: var(--color-danger);
+    --offline-color: var(--color-text-muted);
+
+    /* Colores Scrollbar */
+    --scrollbar-track-bg: rgba(0,0,0,0.1);
+    --scrollbar-thumb-bg: var(--color-accent-primary);
+    --scrollbar-thumb-hover-bg: var(--color-neon-purple);
+    
+    /* Radios específicos */
+    --border-radius-small: var(--radius-sm);
+    --border-radius-medium: var(--radius-md);
+    --border-radius-large: var(--radius-lg);
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    overflow: hidden; /* Prevent body scroll */
+    height: 100vh;
+    width: 100vw;
+}
+
+.dashboard-layout {
+    display: flex;
+    height: 100vh;
+    width: 100%;
+    position: relative; /* For potential absolute positioned elements inside */
+}
+
+.dashboard-sidebar {
+    width: var(--sidebar-width-collapsed);
+    background-color: var(--sidebar-bg);
+    color: var(--color-text-muted);
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 0; /* Reducir padding horizontal cuando colapsado */
+    align-items: center; /* Centrar items hijos horizontalmente */
+    transition: width 0.3s ease;
+    border-right: 1px solid var(--border-color);
+    overflow-y: auto; /* Allow scrolling if content overflows */
+    overflow-x: hidden; /* Hide horizontal overflow */
+    box-shadow: var(--shadow-md); /* Añadir sombra */
+    z-index: 10; /* Asegurar que esté por encima */
+}
+
+.dashboard-main-content {
+    flex-grow: 1; /* Take remaining space */
+    height: 100vh;
+    overflow-y: auto; /* Allow content scrolling */
+    background-color: var(--main-content-bg);
+    padding: 1.5rem 2rem;
+    position: relative; /* For potential effects like overlays */
+}
+
+/* Placeholder styles (can be removed later) */
+.placeholder-text {
+    color: var(--color-text-muted);
+    text-align: center;
+    padding: 2rem;
+    border: 1px dashed var(--color-border-light);
+    border-radius: var(--radius-md);
+    margin-top: 1rem;
+}
+
+/* Basic Scrollbar Styling (Optional but recommended) */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--scrollbar-track-bg);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb-bg);
+    border-radius: 10px;
+    border: 2px solid var(--scrollbar-track-bg); /* Creates padding around thumb */
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover-bg);
+}
+
+/* For Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb-bg) var(--scrollbar-track-bg);
+}
+
+/* Sidebar Logo */
+.sidebar-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Centrar por defecto (colapsado) */
+    padding: 0.5rem 0 1rem 0; /* Sin padding lateral */
+    text-decoration: none;
+    color: var(--color-text-primary);
+    margin-bottom: 1rem; /* Space below logo */
+    min-height: 50px; /* Asegurar altura mínima */
+    width: 100%; /* Ocupar ancho para centrar contenido */
+}
+
+.logo-img-sidebar {
+    height: 40px; /* Adjust size as needed */
+    width: 40px;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+    margin-right: 0; /* Sin margen cuando colapsado */
+}
+
+.sidebar-logo:hover .logo-img-sidebar {
+    transform: rotate(15deg) scale(1.1);
+}
+
+.logo-text-sidebar {
+    font-size: 1.2rem;
+    font-weight: 700;
+    opacity: 0;
+    visibility: hidden;
+    width: 0; /* Ocultar completamente */
+    overflow: hidden;
+    margin-left: 0; /* Sin margen izquierdo inicialmente */
+    transition: opacity 0.2s ease 0.1s, visibility 0.2s ease 0.1s, width 0.3s ease; /* Animar ancho */
+    white-space: nowrap; /* Prevent wrapping when sidebar expands */
+    font-family: 'Orbitron', sans-serif; /* Use a futuristic font if available */
+    color: var(--primary-accent); /* Use accent color */
+    text-shadow: 0 0 5px var(--primary-accent); /* Glow effect */
+}
+
+/* Show text when sidebar is hovered/expanded */
+.dashboard-sidebar:hover {
+    align-items: flex-start; /* Alinear al inicio cuando expandido */
+    padding: 1rem 0.5rem; /* Restaurar padding horizontal */
+    width: var(--sidebar-width-expanded); /* <-- APLICAR ANCHO EXPANDIDO */
+}
+
+.dashboard-sidebar:hover .sidebar-logo {
+    justify-content: flex-start; /* Alinear a la izquierda */
+    padding: 0.5rem 0.5rem 1rem 0.5rem; /* Restaurar padding */
+}
+
+.dashboard-sidebar:hover .logo-img-sidebar {
+    margin-right: 0.5rem; /* Añadir margen cuando expandido */
+}
+
+.dashboard-sidebar:hover .logo-text-sidebar {
+    opacity: 1;
+    visibility: visible;
+    width: auto; /* Mostrar ancho completo */
+    margin-left: 0.8rem; /* Añadir margen izquierdo */
+}
+
+/* Sidebar Navigation */
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem; /* Space between nav items */
+    width: 100%; /* Ocupar ancho para centrar botones */
+    padding: 0 0.5rem; /* Padding para los botones dentro */
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    padding: 0.8rem 0; /* Padding vertical, sin padding horizontal directo */
+    border-radius: var(--border-radius-small);
+    color: var(--text-muted);
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    font-size: 1.2rem; /* Icon size */
+    transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+    width: calc(100% - 1rem); /* Ajustar ancho para padding del contenedor padre */
+    margin: 0 auto; /* Centrar el botón mismo */
+    position: relative; /* For tooltip/text positioning */
+    justify-content: center; /* Centrar icono por defecto (colapsado) */
+}
+
+.nav-item i {
+    width: 24px; /* Ensure icons align */
+    text-align: center;
+    margin-right: 0; /* Sin margen por defecto */
+    transition: margin-right 0.3s ease; /* Animar margen */
+}
+
+.nav-text {
+    opacity: 0;
+    visibility: hidden;
+    width: 0; /* Ocultar completamente */
+    overflow: hidden;
+    transition: opacity 0.2s 0.1s ease, visibility 0.2s 0.1s ease, width 0.3s ease; /* Animar ancho */
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+/* Show text on hover */
+.dashboard-sidebar:hover .nav-item {
+    justify-content: flex-start; /* Alinear a la izquierda */
+    padding: 0.8rem 0.8rem; /* Restaurar padding original */
+    width: calc(100% - 1rem); /* Mantener cálculo o ajustar según sea necesario */
+    margin: 0 auto; /* Mantener centrado si aplica */
+}
+
+.dashboard-sidebar:hover .nav-item i {
+    margin-right: 0.8rem; /* Añadir margen */
+}
+
+.dashboard-sidebar:hover .nav-text {
+    opacity: 1;
+    visibility: visible;
+    width: auto; /* Mostrar ancho */
+}
+
+.nav-item:hover,
+.nav-item.active {
+    background-color: var(--hover-bg);
+    color: var(--color-text-primary);
+    box-shadow: 0 0 10px rgba(var(--primary-accent-rgb), 0.3); /* Reducir intensidad de sombra */
+}
+
+.nav-item.active {
+    background-color: var(--active-bg); /* Fondo distinto para activo */
+    color: var(--primary-accent); /* Color de acento para activo */
+}
+
+/* Sidebar Separator */
+.sidebar-separator {
+    border: none;
+    height: 1px;
+    background-color: var(--border-color);
+    margin: 1rem auto; /* Centrar separador */
+    width: 60%; /* Hacer separador más corto */
+}
+
+/* Server List Placeholder Styling */
+.server-list-container {
+    flex-grow: 1; /* Takes up remaining space */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.5rem 0;
+    width: 100%;
+    padding: 0.5rem 0;
+    /* Placeholder styles - replace when dynamic */
+}
+
+.server-list-container .placeholder-text {
+     color: var(--text-muted);
+     font-size: 0.75rem;
+     text-align: center;
+     width: auto; /* Ajustar ancho */
+     padding: 0.5rem; /* Restaurar padding */
+     opacity: 0; /* Ocultar texto placeholder por defecto */
+     visibility: hidden;
+     transition: opacity 0.2s ease 0.1s, visibility 0.2s ease 0.1s;
+}
+
+/* Show text when sidebar is hovered/expanded */
+.dashboard-sidebar:hover .server-list-container .placeholder-text {
+    opacity: 1; /* Mostrar texto al expandir */
+    visibility: visible;
+}
+
+/* Bottom Controls */
+.sidebar-bottom-controls {
+    margin-top: auto; /* Pushes controls to the bottom */
+    padding: 1rem 0.5rem 0.5rem 0.5rem; /* Ajustar padding */
+    border-top: 1px solid var(--border-color); /* Separator */
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Centrar por defecto */
+    gap: 0.5rem;
+    width: 100%; /* Ocupar ancho */
+}
+
+/* Reutilizar estilo de nav-item para controles y perfil */
+.nav-item-like {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 0.6rem 0.5rem; /* Ajustar padding */
+    border-radius: var(--border-radius-small);
+    transition: background-color var(--transition-fast);
+    justify-content: center; /* Centrar icono por defecto */
+}
+
+.nav-item-like:hover {
+    background-color: var(--hover-bg);
+}
+
+.control-item {
+    /* Quitar tamaño fijo si usamos nav-item-like */
+    /* width: 40px; */
+    /* height: 40px; */
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    cursor: pointer;
+    /* padding: 0.6rem; Ya se maneja en nav-item-like */
+    /* display: flex; Ya se maneja en nav-item-like */
+    /* justify-content: center; Ya se maneja en nav-item-like */
+    /* align-items: center; Ya se maneja en nav-item-like */
+}
+
+.control-item i {
+     width: 24px; /* Alinear con iconos de nav */
+     text-align: center;
+     transition: margin-right 0.3s ease;
+}
+
+.control-text {
+    opacity: 0;
+    visibility: hidden;
+    width: 0;
+    overflow: hidden;
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+    margin-left: 0;
+    white-space: nowrap;
+    transition: opacity 0.2s 0.1s ease, visibility 0.2s 0.1s ease, width 0.3s ease, margin-left 0.3s ease;
+}
+
+/* User Profile Area */
+.sidebar-user-profile {
+    /* padding: 0.5rem; Ya se maneja en nav-item-like */
+    /* justify-content: center; Ya se maneja en nav-item-like */
+    margin-top: 0.5rem;
+    cursor: pointer;
+}
+
+.user-details-sidebar {
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    visibility: hidden;
+    width: 0;
+    overflow: hidden;
+    margin-left: 0;
+    transition: opacity 0.2s 0.1s ease, visibility 0.2s 0.1s ease, width 0.3s ease, margin-left 0.3s ease;
+}
+
+.user-name-sidebar {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+}
+
+.user-status-sidebar {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+}
+
+.user-avatar-sidebar {
+    position: relative;
+    width: 32px; /* Tamaño del círculo */
+    height: 32px; /* Tamaño del círculo */
+    border-radius: 50%; /* Hacerlo circular */
+    overflow: hidden; /* <-- ESENCIAL: Ocultar lo que se salga */
+    flex-shrink: 0; /* Evitar que se encoja */
+}
+
+.user-avatar-sidebar img {
+    display: block; /* Asegurar que sea bloque */
+    width: 100%;    /* <-- Ocupar todo el contenedor */
+    height: 100%;   /* <-- Ocupar todo el contenedor */
+    object-fit: cover; /* <-- ESENCIAL: Cubrir sin deformar */
+    /* border-radius: 50%; No es necesario aquí si el contenedor ya tiene overflow:hidden */
+    /* border: 2px solid var(--border-color); Quitar borde de la imagen, dejarlo en el contenedor si se desea */
+}
+
+.status-dot-sidebar {
+
+}
+
+/* Main Content Area Basic Styles */
+.dashboard-main-content {
+    flex-grow: 1; /* Takes remaining width */
+    background-color: var(--main-content-bg);
+    color: var(--color-text-primary);
+    padding: 1.5rem 2rem;
+    overflow-y: auto; /* Allow content scrolling */
+    display: flex;
+    flex-direction: column;
+}
+
+.content-header-placeholder {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 1.5rem;
+    display: flex; /* Añadir flex para alinear items si hay más */
+    align-items: center;
+    min-height: 50px; /* Asegurar altura mínima */
+}
+
+#contentTitle {
+     margin: 0;
+     font-size: 1.8rem; /* Aumentar tamaño */
+     font-weight: 600;
+     color: var(--color-text-primary);
+     font-family: 'Orbitron', sans-serif; /* Usar misma fuente que logo */
+     letter-spacing: 1px;
+}
+
+#mainContentArea {
+    flex-grow: 1;
+    /* Styles for content loaded here will be added */
+}
+
+#mainContentArea .placeholder-text {
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    text-align: center;
+    margin-top: 2rem;
+}
+
+/* Hide text by default - adjust if sidebar starts expanded */
+.dashboard-sidebar .logo-text-sidebar,
+.dashboard-sidebar .nav-text {
+    opacity: 0;
+    visibility: hidden;
+}
+
+/* Show text ONLY when sidebar is hovered (for now) */
+.dashboard-sidebar:hover .logo-text-sidebar,
+.dashboard-sidebar:hover .nav-text {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Adjust icon margin when sidebar is hovered (text appears) */
+.dashboard-sidebar:hover .nav-item i {
+    margin-right: 0.8rem;
+}
+
+/* Reset icon margin when collapsed (no text visible) */
+.dashboard-sidebar .nav-item i {
+     margin-right: 0; /* Remove margin when text is hidden */
+     transition: margin-right 0.3s ease; /* Suavizar cambio de margen */
+}
+
+/* Keep icon centered when sidebar is collapsed */
+.dashboard-sidebar .nav-item {
+    justify-content: center;
+}
+
+/* Adjust justification when hovered (text appears) */
+.dashboard-sidebar:hover .nav-item {
+    justify-content: flex-start;
+}
+
+/* Responsive adjustments (Example for potential sidebar expansion later) */
+/* We'll add a class e.g., 'sidebar-expanded' via JS */
+/*
+.dashboard-sidebar.sidebar-expanded {
+    width: var(--sidebar-width-expanded);
+}
+
+.dashboard-sidebar.sidebar-expanded .logo-text-sidebar,
+.dashboard-sidebar.sidebar-expanded .nav-text {
+    opacity: 1;
+    visibility: visible;
+}
+*/
+
+/* --- Estilos para HOVER en controles inferiores --- */
+.dashboard-sidebar:hover .sidebar-bottom-controls {
+    align-items: stretch; /* Permitir que los items ocupen el ancho */
+}
+
+.dashboard-sidebar:hover .nav-item-like {
+    justify-content: flex-start; /* Alinear a la izquierda */
+    padding: 0.6rem 0.8rem; /* Restaurar padding */
+}
+
+.dashboard-sidebar:hover .control-item i {
+     margin-right: 0.8rem; /* Espacio para el texto */
+}
+
+.dashboard-sidebar:hover .control-text {
+    opacity: 1;
+    visibility: visible;
+    width: auto;
+    margin-left: 0.8rem;
+}
+
+.dashboard-sidebar:hover .user-avatar-sidebar {
+     margin-right: 0.8rem; /* Añadir margen al avatar cuando se expande */
+}
+
+.dashboard-sidebar:hover .user-details-sidebar {
+    opacity: 1;
+    visibility: visible;
+    width: auto;
+    margin-left: 0; /* El margen ya está en el avatar */
+} 

@@ -1,0 +1,21 @@
+{
+  "friendships": [
+    {
+      "id": "1",
+      "senderId": "1",
+      "receiverId": "2",
+      "status": "pending",
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    }
+  ],
+  "notifications": [
+    {
+      "id": "1",
+      "userId": "2",
+      "type": "friend_request",
+      "senderId": "1",
+      "read": false,
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    }
+  ]
+} 

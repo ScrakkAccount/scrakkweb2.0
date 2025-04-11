@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Scrakk</title>
+    <!-- Fuentes (Manteniendo consistencia) -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <!-- CSS Nuevo Dashboard -->
+    <link rel="stylesheet" href="css/new-dashboard.css">
+    <!-- CSS para Modales (Reutilizar si aplica) -->
+    <link rel="stylesheet" href="css/modals.css">
+    <!-- CSS para Modal de Perfil -->
+    <link rel="stylesheet" href="css/profile-modal.css">
+    <!-- CSS para Notificaciones -->
+    <link rel="stylesheet" href="css/notifications.css">
+    <!-- CSS para Sistema de Amigos -->
+    <link rel="stylesheet" href="css/friends.css">
+    <!-- CSS para Sistema de IDs de Amigos -->
+    <link rel="stylesheet" href="css/friend-id.css">
+
+    <!-- Supabase (¡Esencial!) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-init.js"></script>
+    <!-- Configuración de base de datos -->
+    <script src="js/db-setup.js"></script> 
+
+</head>
+<body>
+    <div class="dashboard-layout">
+        <!-- Barra Lateral Dinámica -->
+        <aside class="dashboard-sidebar">
+            <!-- Logo -->
+            <a href="#" class="sidebar-logo" onclick="return false;"> 
+                 <img src="https://i.ibb.co/ZRXTrM6w/ic-launcher.png" alt="Scrakk Logo" class="logo-img-sidebar">
+                 <span class="logo-text-sidebar">Scrakk</span>
+            </a>
+            
+            <!-- Navegación Principal -->
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-section="home" title="Inicio">
+                    <i class="fas fa-home nav-icon"></i>
+                    <span class="nav-text">Inicio</span>
+                    </button>
+                <button class="nav-item" data-section="explore" title="Explorar">
+                    <i class="fas fa-compass nav-icon"></i>
+                    <span class="nav-text">Explorar</span>
+                        </button>
+                <button class="nav-item" data-section="dms" title="Mensajes Directos">
+                    <i class="fas fa-at nav-icon"></i>
+                    <span class="nav-text">Mensajes</span>
+                </button>
+                <button class="nav-item" data-section="friends" title="Añadir Amigos">
+                    <i class="fas fa-user-plus nav-icon"></i>
+                    <span class="nav-text">Amigos</span>
+                </button>
+            </nav>
+
+            <!-- Separador -->
+            <hr class="sidebar-separator">
+
+            <!-- Lista de Servidores (Placeholder) -->
+            <div class="server-list-container" title="Servidores">
+                <i class="fas fa-server nav-icon"></i>
+                <span class="nav-text">Servidores</span>
+                 <!-- Los iconos de servidor se cargarán aquí dinámicamente -->
+                 <div class="server-list-placeholder nav-text"> (Próximamente)</div>
+                        </div>
+                        
+            <!-- Separador Inferior -->
+             <hr class="sidebar-separator bottom-sep">
+                        
+            <!-- Controles Inferiores -->
+            <div class="sidebar-bottom-controls">
+                 <button class="control-item nav-item" title="Añadir Servidor" id="addServerBtn">
+                     <i class="fas fa-plus nav-icon"></i>
+                     <span class="nav-text">Añadir Servidor</span>
+                    </button>
+                 <button class="control-item nav-item" title="Configuración de Usuario" id="userSettingsBtn">
+                     <i class="fas fa-cog nav-icon"></i>
+                     <span class="nav-text">Ajustes</span>
+                            </button>
+                 <!-- Área de Perfil de Usuario -->
+                 <div class="sidebar-user-profile nav-item" id="userProfileTrigger" title="Perfil de Usuario">
+                     <div class="user-info">
+                         <div class="user-avatar">
+                             <img src="https://i.ibb.co/ZRXTrM6w/ic-launcher.png" alt="User Avatar" id="userAvatarSidebar">
+                             <div id="sidebarStatusIndicator" class="sidebar-status-indicator"></div>
+                             <span class="loading-placeholder" style="display: none;">Cargando...</span>
+                            </div>
+                         <div class="user-details">
+                             <h3 class="user-name" id="userNameSidebar">
+                                 <span class="loading-placeholder" style="display: none;">Cargando...</span>
+                             </h3>
+                             <span class="user-status" id="userStatusDisplay">
+                                 <span class="loading-placeholder" style="display: none;">Cargando...</span>
+                             </span>
+                            </div>
+                            </div>
+                        </div>
+                    </div>
+        </aside>
+
+        <!-- Área de Contenido Principal -->
+        <main class="dashboard-main-content">
+             <header class="main-content-header">
+                 <h2 id="contentTitle">Inicio</h2>
+                 <!-- Podrían ir botones de acción aquí -->
+             </header>
+             <section id="mainContentArea" class="main-content-area">
+                 <!-- El contenido dinámico se cargará aquí -->
+             </section>
+        </main>
+                </div>
+                
+    <!-- Modales (Reutilizar IDs, su contenido interno se adaptará luego) -->
+    <div id="createServerModal" class="modal"></div>
+    <div id="userProfileModal" class="modal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeModal('userProfileModal')" title="Cerrar">&times;</button>
+            <h2>Perfil de Usuario</h2>
+            <div class="profile-content">
+                <div class="profile-avatar-container" id="avatarContainer">
+                    <img id="profileModalAvatar" src="https://i.ibb.co/ZRXTrM6w/ic-launcher.png" alt="Avatar" class="profile-avatar">
+                    <div class="change-avatar-overlay">Cambiar foto</div>
+                    <div id="profileStatusIndicator" class="status-indicator online"></div>
+                    <input type="file" id="avatarFileInput" accept="image/*" style="display: none;">
+                </div>
+                
+                <div class="profile-form">
+                    <!-- Campos editables -->
+                    <div class="form-group">
+                        <label for="profileUsername">Nombre de usuario</label>
+                        <input type="text" id="profileUsername" class="profile-input" placeholder="Tu nombre de usuario">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="profileFullName">Nombre completo</label>
+                        <input type="text" id="profileFullName" class="profile-input" placeholder="Tu nombre completo">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>ID de usuario</label>
+                        <div class="profile-id-container" style="display: flex; align-items: center;">
+                            <p id="profileUserID" class="profile-readonly-field" style="margin-right: 10px; flex-grow: 1; user-select: all;">Cargando...</p>
+                            <button id="copyUserIDBtn" class="cyber-btn small" style="padding: 5px; font-size: 0.8rem;" title="Copiar ID">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <p class="id-info" style="font-size: 0.8rem; margin-top: 5px; opacity: 0.7;">
+                            <i class="fas fa-info-circle"></i> Comparte este ID para que otros usuarios puedan enviarte solicitudes de amistad
+                        </p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="profileBio">Biografía</label>
+                        <textarea id="profileBio" class="profile-input" placeholder="Cuéntanos un poco sobre ti" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Email</label>
+                        <p id="profileModalEmail" class="profile-readonly-field">usuario@correo.com</p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Estado</label>
+                        <div class="status-selector">
+                            <button class="status-option online" data-status="online" title="En línea">
+                                <span class="status-dot"></span> En línea
+                            </button>
+                            <button class="status-option idle" data-status="idle" title="Ausente">
+                                <span class="status-dot"></span> Ausente
+                            </button>
+                            <button class="status-option dnd" data-status="dnd" title="No molestar">
+                                <span class="status-dot"></span> No molestar
+                            </button>
+                            <button class="status-option invisible" data-status="invisible" title="Invisible">
+                                <span class="status-dot"></span> Invisible
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Botón de guardar -->
+                    <div class="form-actions">
+                        <button id="saveProfileBtn" class="save-profile-btn">
+                            <i class="fas fa-save"></i> Guardar cambios
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Notificación (Reutilizar si existe o crear) -->
+    <div class="notification" id="notification">
+         <i id="notificationIcon" class="fas fa-info-circle"></i> 
+        <span id="notificationMessage"></span>
+    </div>
+
+    <!-- JS Sistema de IDs de Usuario -->
+    <script src="js/userIDs.js"></script>
+    <!-- JS Nuevo Dashboard -->
+    <script src="js/new-dashboard.js"></script>
+    <!-- JS Perfil con IDs -->
+    <script src="js/profile-id.js"></script>
+    <!-- JS Sistema de Amigos -->
+    <script src="js/friends.js"></script>
+        <!-- Modal de Ajustes de Usuario -->
+    <div id="settingsModal" class="modal">
+            <div class="modal-content settings-modal-content"> <!-- Ancho mayor para ajustes -->
+                <button class="close-modal" onclick="closeModal('settingsModal')" title="Cerrar">&times;</button>
+    
+                <div class="settings-layout">
+                    <!-- Campo de edición inline -->
+                    <div id="editFieldContainer" class="edit-field-container" style="display: none;">
+                        <label id="editFieldLabelInline" class="edit-field-label"></label>
+                        <input type="text" id="editFieldInputInline" class="edit-field-input">
+                        <div id="editFieldError" class="edit-field-error"></div>
+                        <button id="saveEditFieldBtn" class="save-edit-btn">Guardar</button>
+                    </div>
+
+                    <!-- Sidebar de Ajustes -->
+                    <aside class="settings-sidebar">
+                        <h2>AJUSTES DE USUARIO</h2>
+                        <nav class="settings-nav">
+                            <button class="settings-nav-item active" data-tab="myAccount">Mi Cuenta</button>
+                            <button class="settings-nav-item" data-tab="userProfile">Perfiles</button>
+                            <button class="settings-nav-item" data-tab="privacySafety">Privacidad y seguridad</button>
+                            <button class="settings-nav-item" data-tab="appearance">Apariencia</button>
+                            <!-- <button class="settings-nav-item" data-tab="notifications">Notificaciones</button> -->
+                            <!-- <button class="settings-nav-item" data-tab="keybinds">Atajos de teclado</button> -->
+                            <!-- <button class="settings-nav-item" data-tab="language">Idioma</button> -->
+                            <hr class="settings-divider">
+                            <button class="settings-nav-item" id="logoutButtonSettings">
+                                <i class="fas fa-sign-out-alt"></i> Cerrar sesión
+                            </button>
+                            <hr class="settings-divider">
+                            <div class="app-version">Scrakk Beta 0.1.0</div>
+                        </nav>
+                    </aside>
+    
+                    <!-- Contenido de Ajustes -->
+                    <main class="settings-main">
+                        <!-- Sección Mi Cuenta -->
+                        <div id="myAccount" class="settings-tab-content active">
+                            <h3>Mi Cuenta</h3>
+            <div class="settings-content">
+                                <div class="settings-section" id="accountSettings">
+                                    <h3>Cuenta</h3>
+                                    <div class="settings-field">
+                                        <label>Email:</label>
+                                        <span id="settingsEmailDisplay">
+                                            <span class="loading-placeholder" style="display: none;">Cargando...</span>
+                                        </span>
+                    </div>
+                                    <div class="settings-field">
+                                        <label>Nombre de usuario:</label>
+                                        <span id="settingsUsernameDisplay">
+                                            <span class="loading-placeholder" style="display: none;">Cargando...</span>
+                                        </span>
+                    </div>
+                                    <div class="settings-field">
+                                        <label>Nombre completo:</label>
+                                        <span id="settingsFullNameDisplay">
+                                            <span class="loading-placeholder" style="display: none;">Cargando...</span>
+                                        </span>
+                        </div>
+                        </div>
+                    </div>
+                </div>
+                             <!-- Campo de edición oculto -->
+                             <div id="editFieldContainer" style="display: none; margin-top: 20px;">
+                                 <label id="editFieldLabelInline" for="editFieldInputInline"></label>
+                                 <div style="display: flex; gap: 10px;">
+                                     <input type="text" id="editFieldInputInline" class="cyber-input flex-grow">
+                                     <button id="saveEditFieldBtn" class="cyber-btn success small">Guardar</button>
+                                     <button id="cancelEditFieldBtn" class="cyber-btn secondary small">Cancelar</button>
+                        </div>
+                                 <span id="editFieldError" class="error-message"></span>
+                        </div>
+                            <!-- Sección de desactivar cuenta -->
+                            <div class="danger-zone">
+                                <h4>Zona Peligrosa</h4>
+                                <button class="cyber-btn danger small" id="disableAccountBtn">Desactivar Cuenta</button>
+                        </div>
+                    </div>
+                    
+                        <!-- Sección Perfiles (Adaptar del modal anterior si se quiere) -->
+                        <div id="userProfile" class="settings-tab-content">
+                            <h3>Perfiles</h3>
+                             <p class="placeholder-text">Edita cómo te ven los demás. (Funcionalidad perfil de servidor próximamente).</p>
+                            <!-- Reutilizar/adaptar contenido del modal de perfil anterior -->
+                </div>
+                
+                        <!-- Sección Privacidad -->
+                         <div id="privacySafety" class="settings-tab-content">
+                             <h3>Privacidad y seguridad</h3>
+                             <p class="placeholder-text">Controla quién puede interactuar contigo. (Ajustes de privacidad próximamente).</p>
+                    </div>
+                    
+                        <!-- Sección Apariencia -->
+                        <div id="appearance" class="settings-tab-content">
+                            <h3>Apariencia</h3>
+                    <div class="form-group">
+                        <label>Tema</label>
+                        <div class="theme-options">
+                                     <button class="theme-option-btn active" data-theme="dark">
+                                         <div class="theme-preview dark-theme"></div> Oscuro
+                </button>
+                                     <button class="theme-option-btn" data-theme="light">
+                                         <div class="theme-preview light-theme"></div> Claro
+                    </button>
+                                     <!-- <button class="theme-option-btn" data-theme="sync">
+                                         <div class="theme-preview sync-theme"></div> Sincronizar con OS
+                                     </button> -->
+                </div>
+        </div>
+                             <p class="placeholder-text">Más opciones de apariencia próximamente.</p>
+    </div>
+
+                    </main>
+                        </div>
+                    </div>
+                </div>
+                
+        <!-- Notificación (Asegúrate que ya existe o añade) -->
+    <div class="notification" id="notification">
+             <i id="notificationIcon" class="fas fa-info-circle"></i>
+        <span id="notificationMessage"></span>
+    </div>
+
+    <!-- Scripts JS -->
+    <script src="js/supabase-init.js"></script>
+    <script src="js/friends.js"></script>
+    <script src="js/new-dashboard.js"></script>
+</body>
+</html>

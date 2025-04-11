@@ -1,0 +1,417 @@
+/* Estilos para el Modal de Perfil de Usuario */
+
+/* Contenedor principal */
+#userProfileModal {
+    display: none;
+    position: fixed !important;
+    z-index: 9999 !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow: auto !important;
+    backdrop-filter: blur(8px);
+    background-color: rgba(0, 0, 0, 0.75) !important;
+    justify-content: center !important;
+    align-items: center !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    backdrop-filter: blur(5px);
+}
+
+#userProfileModal.show {
+    display: flex !important;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+#userProfileModal .modal-content {
+    background-color: var(--db-bg-secondary) !important;
+    border: 1px solid var(--db-border-light) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(123, 47, 249, 0.3) !important;
+    max-width: 450px !important;
+    width: 90% !important;
+    margin: 0 auto !important;
+    padding: 32px !important;
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) scale(0.95) !important;
+    overflow: hidden !important;
+    background: linear-gradient(145deg, #0c0c20, #14142e) !important;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+#userProfileModal .profile-avatar-container {
+    border: 4px solid rgba(123, 47, 249, 0.6);
+    box-shadow: 0 0 30px rgba(123, 47, 249, 0.5);
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease;
+}
+
+#userProfileModal .profile-input {
+    background-color: rgba(26, 26, 58, 0.6);
+    border: 1px solid rgba(123, 47, 249, 0.3);
+    backdrop-filter: blur(4px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#userProfileModal .profile-input:focus {
+    border-color: var(--db-accent-primary);
+    box-shadow: 0 0 0 4px rgba(123, 47, 249, 0.2);
+    transform: translateY(-1px);
+}
+
+#userProfileModal .save-profile-btn {
+    background: linear-gradient(135deg, var(--db-accent-primary), var(--db-accent-secondary));
+    padding: 14px 28px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 20px rgba(123, 47, 249, 0.4);
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+#userProfileModal.show .modal-content {
+    transform: translate(-50%, -50%) scale(1) !important;
+}
+
+#userProfileModal .modal-content::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 150px;
+    height: 150px;
+    background: linear-gradient(135deg, var(--db-accent-primary), var(--db-accent-secondary));
+    opacity: 0.1;
+    border-radius: 0 0 0 100%;
+    z-index: 0;
+}
+
+#userProfileModal h2 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.7rem;
+    font-weight: 700;
+    color: var(--db-text-primary);
+    margin-bottom: 24px;
+    text-align: center;
+    background: linear-gradient(90deg, var(--db-accent-primary), var(--db-accent-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    position: relative;
+}
+
+#userProfileModal h2::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    height: 3px;
+    width: 50px;
+    background: linear-gradient(90deg, var(--db-accent-primary), var(--db-accent-secondary));
+    border-radius: 3px;
+}
+
+/* Contenido del perfil */
+.profile-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    position: relative;
+    z-index: 1;
+    background: transparent;
+}
+
+/* Contenedor del avatar */
+.profile-avatar-container {
+    position: relative;
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    overflow: visible; /* Cambiado para que el indicador sea visible fuera del contenedor */
+    margin: 0 auto 25px;
+    box-shadow: 0 0 25px rgba(123, 47, 249, 0.4);
+    border: 3px solid rgba(123, 47, 249, 0.5);
+    cursor: pointer;
+    background: transparent;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.profile-avatar-container:hover {
+    transform: scale(1.03);
+    box-shadow: 0 0 30px rgba(123, 47, 249, 0.6);
+}
+
+/* Indicador de estado para el avatar */
+#profileStatusIndicator {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 3px solid var(--db-bg-secondary);
+    z-index: 5;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3);
+    transition: background-color 0.3s ease;
+}
+
+/* Estados para el indicador del avatar */
+#profileStatusIndicator.online {
+    background-color: var(--db-online);
+    box-shadow: 0 0 5px var(--db-online);
+}
+
+#profileStatusIndicator.idle,
+#profileStatusIndicator.ausente {
+    background-color: var(--db-idle);
+    box-shadow: 0 0 5px var(--db-idle);
+}
+
+#profileStatusIndicator.dnd,
+#profileStatusIndicator.no-molestar {
+    background-color: var(--db-dnd);
+    box-shadow: 0 0 5px var(--db-dnd);
+}
+
+#profileStatusIndicator.invisible,
+#profileStatusIndicator.offline {
+    background-color: var(--db-invisible);
+    box-shadow: 0 0 5px var(--db-invisible);
+}
+
+.change-avatar-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(123, 47, 249, 0.8);
+    color: white;
+    text-align: center;
+    padding: 10px 0;
+    font-size: 0.85rem;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+    opacity: 0.95;
+}
+
+.profile-avatar-container:hover .change-avatar-overlay {
+    transform: translateY(0);
+}
+
+.profile-avatar {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+    background: var(--db-bg-secondary);
+    border-radius: 50%; /* Asegurar que la imagen sea circular */
+}
+
+.profile-avatar-container:hover .profile-avatar {
+    transform: scale(1.05);
+}
+
+/* Formulario de perfil */
+.profile-form {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 18px;
+}
+
+/* Campos del formulario */
+.form-group {
+    margin-bottom: 10px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--db-text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+.profile-input {
+    width: 100%;
+    padding: 12px 15px;
+    background-color: rgba(26, 26, 58, 0.4);
+    border: 1px solid var(--db-border-light);
+    border-radius: 10px;
+    color: var(--db-text-primary);
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    font-family: 'Inter', sans-serif;
+}
+
+.profile-input:focus {
+    outline: none;
+    border-color: var(--db-accent-primary);
+    box-shadow: 0 0 0 3px rgba(123, 47, 249, 0.25);
+}
+
+.profile-input::placeholder {
+    color: var(--db-text-muted);
+    opacity: 0.6;
+}
+
+.profile-readonly-field {
+    font-size: 0.9rem;
+    color: var(--db-text-muted);
+    margin: 0;
+    padding: 10px 12px;
+    background-color: rgba(26, 26, 58, 0.2);
+    border-radius: 8px;
+    border: 1px solid var(--db-border-light);
+}
+
+/* Selector de estado */
+.status-selector {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    width: 100%;
+}
+
+.status-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 15px;
+    border-radius: 10px;
+    background-color: var(--db-bg-tertiary);
+    border: 1px solid var(--db-border-light);
+    color: var(--db-text-secondary);
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.status-option:hover {
+    background-color: rgba(26, 26, 58, 0.8);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.status-option.active {
+    background-color: rgba(123, 47, 249, 0.15);
+    border-color: var(--db-accent-primary);
+    box-shadow: 0 0 8px rgba(123, 47, 249, 0.3);
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+/* Colores para los diferentes estados */
+.status-option.online .status-dot {
+    background-color: var(--db-online);
+    box-shadow: 0 0 5px var(--db-online);
+}
+
+.status-option.idle .status-dot {
+    background-color: var(--db-idle);
+    box-shadow: 0 0 5px var(--db-idle);
+}
+
+.status-option.dnd .status-dot {
+    background-color: var(--db-dnd);
+    box-shadow: 0 0 5px var(--db-dnd);
+}
+
+.status-option.invisible .status-dot {
+    background-color: var(--db-invisible);
+    box-shadow: 0 0 5px var(--db-invisible);
+}
+
+/* Efecto para indicar estado activo */
+.status-option.online.active {
+    border-color: var(--db-online);
+    color: var(--db-online);
+}
+
+.status-option.idle.active {
+    border-color: var(--db-idle);
+    color: var(--db-idle);
+}
+
+.status-option.dnd.active {
+    border-color: var(--db-dnd);
+    color: var(--db-dnd);
+}
+
+.status-option.invisible.active {
+    border-color: var(--db-invisible);
+    color: var(--db-invisible);
+}
+
+/* Botón de guardar */
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.save-profile-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 24px;
+    background: linear-gradient(90deg, var(--db-accent-primary), var(--db-accent-secondary));
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 15px rgba(123, 47, 249, 0.3);
+}
+
+.save-profile-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(123, 47, 249, 0.4);
+}
+
+.save-profile-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 5px rgba(123, 47, 249, 0.3);
+}
+
+/* Botón para cerrar */
+#userProfileModal .close-modal {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 32px;
+    height: 32px;
+    background-color: rgba(0, 0, 0, 0.3);
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--db-text-secondary);
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+#userProfileModal .close-modal:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--db-text-primary);
+    transform: rotate(90deg);
+}

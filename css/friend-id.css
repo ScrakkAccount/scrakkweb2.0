@@ -1,0 +1,209 @@
+/* CSS para el sistema de IDs de amigos */
+
+/* Contenedor principal para la sección de ID en el perfil */
+.profile-id-container {
+    background-color: rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    padding: 12px 15px;
+    margin: 15px 0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.profile-id-header {
+    margin-bottom: 8px;
+}
+
+.profile-id-label {
+    font-size: 0.9rem;
+    color: var(--db-text-muted);
+    font-weight: 600;
+}
+
+.profile-id-content {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+#profileUserID {
+    font-family: 'Courier New', monospace;
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 6px 10px;
+    border-radius: 4px;
+    user-select: all;
+    flex-grow: 1;
+    font-size: 1rem;
+    letter-spacing: 0.5px;
+}
+
+.btn-copy-id {
+    background-color: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--db-text-muted);
+    border-radius: 4px;
+    margin-left: 8px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-copy-id:hover {
+    background-color: rgba(0, 0, 0, 0.4);
+    color: var(--db-text-light);
+}
+
+.profile-id-actions {
+    margin-bottom: 10px;
+}
+
+.btn-generate-id {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    background-color: var(--db-accent-color);
+    border: none;
+    border-radius: 4px;
+    color: white;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-generate-id i {
+    margin-right: 6px;
+}
+
+.btn-generate-id:hover {
+    background-color: var(--db-accent-hover);
+}
+
+.profile-id-info {
+    margin-top: 8px;
+}
+
+.id-info-text {
+    font-size: 0.8rem;
+    color: var(--db-text-muted);
+    margin: 0;
+}
+
+
+/* Estilo para el ID de usuario */
+.friend-user-id {
+    font-size: 0.8rem;
+    color: var(--db-text-muted);
+    margin: 2px 0;
+}
+
+.user-id-display {
+    font-family: 'Courier New', monospace;
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    user-select: all; /* Permite seleccionar fácilmente el ID */
+}
+
+/* Badge para notificaciones de solicitudes pendientes */
+.pending-badge {
+    background-color: var(--db-online);
+    color: #fff;
+    border-radius: 50%;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 4px;
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 8px;
+}
+
+/* Mejorar visualización en la búsqueda de amigos */
+.add-friend-section {
+    background-color: rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
+}
+
+.friend-id-info {
+    margin-top: 8px;
+    color: var(--db-text-muted);
+}
+
+/* Estilo para los botones de acción de amigos */
+.friend-action-btn {
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.friend-action-btn:hover {
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+.friend-action-btn.accept-btn {
+    color: var(--db-online);
+}
+
+.friend-action-btn.reject-btn {
+    color: var(--db-dnd);
+}
+
+.friend-action-btn.chat-btn {
+    color: var(--db-text);
+}
+
+/* Estilo para solicitudes de amistad */
+.friend-request-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    transition: background-color 0.2s;
+}
+
+.friend-request-item:hover {
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+.friend-request-info {
+    flex-grow: 1;
+    margin-left: 10px;
+    overflow: hidden;
+}
+
+.friend-request-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* Responsive para pantallas pequeñas */
+@media (max-width: 768px) {
+    .friend-request-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .friend-request-info {
+        margin: 8px 0;
+    }
+    
+    .friend-request-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}

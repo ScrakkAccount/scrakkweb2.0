@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmar Inicio de Sesión - Scrakk</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --color-bg-primary: #0f172a;
+            --color-bg-secondary: #1e293b;
+            --color-bg-tertiary: #253349;
+            --color-accent: #3b82f6;
+            --color-accent-hover: #2563eb;
+            --color-text-primary: #f8fafc;
+            --color-text-secondary: #cbd5e1;
+            --color-text-muted: #94a3b8;
+            --color-border: rgba(255, 255, 255, 0.1);
+            --color-success: #10b981;
+            --color-danger: #ef4444;
+            --color-warning: #f59e0b;
+            --color-info: #60a5fa;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.2);
+            --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.3);
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 20px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            font-family: 'Inter', sans-serif;
+            color: var(--color-text-primary);
+            background: var(--color-bg-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .confirm-container {
+            width: 90%;
+            max-width: 400px;
+            background: var(--color-bg-secondary);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            box-shadow: var(--shadow-lg);
+            text-align: center;
+        }
+
+        .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            color: var(--color-accent);
+        }
+
+        .user-info {
+            margin-bottom: 2rem;
+        }
+
+        .user-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--color-accent);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 2rem;
+            font-weight: 600;
+            overflow: hidden;
+        }
+
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .user-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .user-email {
+            color: var(--color-text-muted);
+            font-size: 0.9rem;
+        }
+
+        .confirm-message {
+            margin-bottom: 2rem;
+            color: var(--color-text-secondary);
+        }
+
+        .button-container {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .continue-btn, .cancel-btn {
+            flex: 1;
+            padding: 1rem;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .continue-btn {
+            background: var(--color-accent);
+            color: white;
+        }
+
+        .continue-btn:hover {
+            background: var(--color-accent-hover);
+            transform: translateY(-2px);
+        }
+
+        .cancel-btn {
+            background: var(--color-bg-tertiary);
+            color: var(--color-text-primary);
+        }
+
+        .cancel-btn:hover {
+            background: var(--color-text-muted);
+            transform: translateY(-2px);
+        }
+
+        .loading {
+            display: none;
+            margin: 1rem 0;
+        }
+
+        .loading i {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message, .success-message {
+            margin-top: 1rem;
+            padding: 0.5rem;
+            border-radius: var(--radius-sm);
+        }
+
+        .error-message {
+            color: var(--color-danger);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .success-message {
+            color: var(--color-success);
+            background: rgba(16, 185, 129, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="confirm-container">
+        <div class="logo">SCRakk</div>
+        <div class="user-info" id="userInfo">
+            <div class="user-avatar">
+                <i class="fas fa-user"></i>
+            </div>
+            <div class="user-name">Cargando...</div>
+            <div class="user-email">Cargando...</div>
+        </div>
+        <div class="confirm-message">
+            ¿Quieres iniciar sesión como <span class="user-name-highlight" id="userNameHighlight">Usuario</span>?
+        </div>
+        <div class="button-container">
+            <button class="continue-btn" id="confirmButton">Continuar</button>
+            <button class="cancel-btn" id="cancelButton">Cancelar</button>
+        </div>
+        <div class="loading" id="loading">
+            <i class="fas fa-spinner"></i>
+        </div>
+        <div class="error-message" id="errorMessage" style="display: none;"></div>
+        <div class="success-message" id="successMessage" style="display: none;"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const confirmButton = document.getElementById('confirmButton');
+            const cancelButton = document.getElementById('cancelButton');
+            const loading = document.getElementById('loading');
+            const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('successMessage');
+            const userInfo = document.getElementById('userInfo');
+            const userNameHighlight = document.getElementById('userNameHighlight');
+            
+            // Obtener token de autenticación
+            const authToken = localStorage.getItem('auth_token');
+            
+            if (!authToken) {
+                // Redireccionar al login si no hay token
+                errorMessage.textContent = 'No hay sesión activa. Redirigiendo...';
+                errorMessage.style.display = 'block';
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+                return;
+            }
+            
+            // Cargar datos del usuario del backend
+            fetch('/api/auth/me', {  // Cambia esta URL por la de tu backend
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error al obtener información del usuario');
+                }
+                return response.json();
+            })
+            .then(userData => {
+                if (!userData) {
+                    throw new Error('No se encontró información del usuario');
+                }
+                
+                // Mostrar información del usuario
+                displayUserInfo(userData);
+                
+                // Configurar botones
+                setupButtons(userData);
+            })
+            .catch(error => {
+                console.error('Error al cargar datos del usuario:', error);
+                
+                // Intentar usar el respaldo de localStorage
+                const currentUser = JSON.parse(localStorage.getItem('current-user'));
+                
+                if (currentUser) {
+                    displayUserInfo(currentUser);
+                    setupButtons(currentUser);
+                } else {
+                    errorMessage.textContent = 'No se pudo cargar información del usuario. Vuelve a iniciar sesión.';
+                    errorMessage.style.display = 'block';
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                }
+            });
+            
+            function displayUserInfo(user) {
+                // Mostrar información del usuario
+                const userAvatar = userInfo.querySelector('.user-avatar');
+                const userName = userInfo.querySelector('.user-name');
+                const userEmail = userInfo.querySelector('.user-email');
+                
+                userAvatar.innerHTML = user.avatar || user.nombre?.charAt(0)?.toUpperCase() || 'U';
+                userName.textContent = `${user.nombre || ''} ${user.apellido || ''}`.trim();
+                userEmail.textContent = user.email || '';
+                userNameHighlight.textContent = user.nombre || 'Usuario';
+            }
+            
+            function setupButtons(user) {
+                // Confirmar login
+                confirmButton.addEventListener('click', function() {
+                    loading.style.display = 'block';
+                    confirmButton.disabled = true;
+                    cancelButton.disabled = true;
+                    
+                    // Actualizar el estado del usuario a online
+                    fetch('/api/auth/status', {  // Cambia esta URL por la de tu backend
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${authToken}`
+                        },
+                        body: JSON.stringify({ status: 'online' })
+                    })
+                    .then(response => {
+                        // Mostrar mensaje de éxito independientemente de la respuesta
+                        successMessage.textContent = '¡Inicio de sesión exitoso!';
+                        successMessage.style.display = 'block';
+                        
+                        // Redirigir al dashboard después de un breve retraso
+                        setTimeout(() => {
+                            window.location.href = 'dashboard.html';
+                        }, 1000);
+                    })
+                    .catch(error => {
+                        console.error('Error al actualizar estado:', error);
+                        // Aún así redirigir al dashboard
+                        successMessage.textContent = '¡Inicio de sesión exitoso!';
+                        successMessage.style.display = 'block';
+                        
+                        setTimeout(() => {
+                            window.location.href = 'dashboard.html';
+                        }, 1000);
+                    });
+                });
+                
+                // Cancelar login
+                cancelButton.addEventListener('click', function() {
+                    // Cerrar sesión en el backend
+                    fetch('/api/auth/logout', {  // Cambia esta URL por la de tu backend
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`
+                        }
+                    })
+                    .finally(() => {
+                        // Eliminar token y datos de usuario
+                        localStorage.removeItem('auth_token');
+                        localStorage.removeItem('current-user');
+                        
+                        // Redirigir al login
+                        window.location.href = 'login.html';
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,13 @@
+[build]
+  publish = "."
+  command = "# no build command"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/__/auth/*"
+  to = "https://scrakk-944d6.firebaseapp.com/__/auth/:splat"
+  status = 200 

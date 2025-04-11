@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sincronizar Usuarios - Scrakk</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-bg-primary: #0f172a;
+            --color-bg-secondary: #1e293b;
+            --color-bg-tertiary: #253349;
+            --color-accent: #3b82f6;
+            --color-accent-hover: #2563eb;
+            --color-text-primary: #f8fafc;
+            --color-text-secondary: #cbd5e1;
+            --color-text-muted: #94a3b8;
+            --color-border: rgba(255, 255, 255, 0.1);
+            --color-success: #10b981;
+            --color-danger: #ef4444;
+            --color-warning: #f59e0b;
+            --color-info: #60a5fa;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.2);
+            --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.3);
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--color-bg-primary), #1e3a8a);
+            font-family: 'Inter', sans-serif;
+            color: var(--color-text-primary);
+            display: flex;
+            flex-direction: column;
+        }
+
+        nav {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 1200px;
+            padding: 1.2rem 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border-radius: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--color-border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            transition: transform 0.3s ease;
+        }
+
+        .logo-img {
+            height: 40px;
+            transition: transform 0.3s ease;
+        }
+
+        .logo-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--color-info);
+            letter-spacing: 1.5px;
+            text-shadow: 0 0 15px rgba(96, 165, 250, 0.4);
+        }
+
+        .logo:hover {
+            transform: scale(1.02);
+        }
+
+        .logo:hover .logo-img {
+            transform: rotate(-15deg);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--color-text-primary);
+            text-decoration: none;
+            padding: 0.7rem 1.3rem;
+            border-radius: var(--radius-md);
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .nav-links a:hover {
+            background: rgba(59, 130, 246, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .main-content {
+            margin-top: 150px;
+            padding: 4rem 2rem;
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .glass-container {
+            max-width: 600px;
+            width: 100%;
+            padding: 3rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(12px);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--color-border);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 2.5rem;
+            color: var(--color-info);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-align: center;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 1.3rem;
+            background: var(--color-accent);
+            border: none;
+            border-radius: var(--radius-md);
+            color: white;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-top: 1rem;
+            font-weight: 600;
+        }
+
+        .btn-primary:hover {
+            background: var(--color-accent-hover);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .result-container {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: var(--radius-md);
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .result-title {
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--color-info);
+        }
+
+        .user-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .user-item {
+            padding: 0.8rem;
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .user-item:last-child {
+            border-bottom: none;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-name {
+            font-weight: 500;
+        }
+
+        .user-email {
+            font-size: 0.85rem;
+            color: var(--color-text-muted);
+        }
+
+        .user-source {
+            font-size: 0.75rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: var(--radius-sm);
+            background: var(--color-bg-tertiary);
+        }
+
+        .user-source.local {
+            background: var(--color-success);
+        }
+
+        .user-source.json {
+            background: var(--color-info);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        .spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--color-accent);
+            animation: spin 1s ease-in-out infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(5px);
+            color: var(--color-text-muted);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            nav {
+                top: 10px;
+                width: 95%;
+                padding: 1rem;
+            }
+
+            .logo-img {
+                height: 35px;
+            }
+
+            .logo-text {
+                font-size: 1.4rem;
+            }
+
+            .nav-links {
+                gap: 0.8rem;
+            }
+
+            .nav-links a {
+                padding: 0.5rem 1rem;
+                font-size: 0.9rem;
+            }
+
+            .main-content {
+                margin-top: 120px;
+                padding: 2rem 1rem;
+            }
+
+            .glass-container {
+                padding: 2rem;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .logo-text {
+                display: none;
+            }
+
+            .logo-img {
+                height: 45px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="logo">
+            <img src="logo.png" alt="Scrakk Logo" class="logo-img">
+            <span class="logo-text">Scrakk</span>
+        </a>
+        <div class="nav-links">
+            <a href="dashboard.html">Dashboard</a>
+            <a href="login.html">Iniciar Sesión</a>
+            <a href="registro.html">Registrarse</a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="glass-container">
+            <h1>Sincronizar Usuarios</h1>
+            <p>Esta página te permite sincronizar los usuarios almacenados en el localStorage con el archivo users.json.</p>
+            <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                <button class="btn-primary" id="syncButton">Sincronizar Usuarios</button>
+                <button class="btn-primary" id="clearButton" style="background-color: var(--color-danger);">Eliminar Todos los Usuarios</button>
+            </div>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+            </div>
+            
+            <div class="result-container" id="resultContainer">
+                <div class="result-title">Usuarios Sincronizados</div>
+                <ul class="user-list" id="userList">
+                    <!-- Los usuarios se mostrarán aquí -->
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>© 2024 Scrakk Technologies. Todos los derechos reservados.</p>
+    </footer>
+
+    <script src="sync-users.js"></script>
+    <script>
+        document.getElementById('syncButton').addEventListener('click', function() {
+            // Mostrar loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('resultContainer').style.display = 'none';
+            
+            // Obtener usuarios del localStorage
+            const localStorageUsers = JSON.parse(localStorage.getItem('users')) || [];
+            
+            // Obtener usuarios del archivo users.json
+            fetch('users.json')
+                .then(response => response.json())
+                .then(data => {
+                    const jsonUsers = data.users;
+                    
+                    // Combinar usuarios, evitando duplicados por email
+                    const combinedUsers = [...jsonUsers];
+                    
+                    localStorageUsers.forEach(localUser => {
+                        const existingUser = combinedUsers.find(u => u.email === localUser.email);
+                        if (!existingUser) {
+                            combinedUsers.push(localUser);
+                        }
+                    });
+                    
+                    // Actualizar localStorage con los usuarios combinados
+                    localStorage.setItem('users', JSON.stringify(combinedUsers));
+                    
+                    // Mostrar resultados
+                    displayUsers(combinedUsers, jsonUsers, localStorageUsers);
+                    
+                    // Mostrar mensaje de éxito
+                    alert('¡Usuarios sincronizados correctamente!');
+                    
+                    // Ocultar loading
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('resultContainer').style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error al sincronizar usuarios:', error);
+                    document.getElementById('loading').style.display = 'none';
+                    alert('Error al sincronizar usuarios. Por favor, intenta de nuevo.');
+                });
+        });
+        
+        function displayUsers(combinedUsers, jsonUsers, localStorageUsers) {
+            const userList = document.getElementById('userList');
+            userList.innerHTML = '';
+            
+            combinedUsers.forEach(user => {
+                const li = document.createElement('li');
+                li.className = 'user-item';
+                
+                // Determinar la fuente del usuario
+                const isInJson = jsonUsers.some(u => u.email === user.email);
+                const isInLocal = localStorageUsers.some(u => u.email === user.email);
+                
+                let sourceClass = '';
+                let sourceText = '';
+                
+                if (isInJson && isInLocal) {
+                    sourceClass = 'json';
+                    sourceText = 'JSON + Local';
+                } else if (isInJson) {
+                    sourceClass = 'json';
+                    sourceText = 'JSON';
+                } else {
+                    sourceClass = 'local';
+                    sourceText = 'Local';
+                }
+                
+                li.innerHTML = `
+                    <div class="user-info">
+                        <div class="user-name">${user.nombre} ${user.apellido}</div>
+                        <div class="user-email">${user.email}</div>
+                    </div>
+                    <div class="user-source ${sourceClass}">${sourceText}</div>
+                `;
+                
+                userList.appendChild(li);
+            });
+            
+            document.getElementById('resultContainer').style.display = 'block';
+        }
+
+        // Agregar función para limpiar usuarios
+        document.getElementById('clearButton').addEventListener('click', function() {
+            if (confirm('¿Estás seguro de que quieres eliminar todos los usuarios? Esta acción no se puede deshacer.')) {
+                localStorage.removeItem('users');
+                localStorage.removeItem('currentUser');
+                localStorage.removeItem('friendships');
+                localStorage.removeItem('rememberedEmail');
+                alert('Todos los usuarios han sido eliminados correctamente');
+                window.location.href = 'login.html';
+            }
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,134 @@
+/* Estilos mejorados para notificaciones */
+
+.notification {
+    position: fixed;
+    top: -50px; /* Empieza fuera de pantalla desde arriba */
+    left: 0;
+    right: 0;
+    width: 100%; /* Barra de ancho completo */
+    height: 36px; /* Altura muy reducida */
+    background: rgba(18, 18, 42, 0.95); /* Fondo semitransparente */
+    color: #fff;
+    padding: 0; /* Sin padding */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Centrado horizontal */
+    z-index: 10000; /* Valor más alto para estar encima de todo */
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease-out;
+    border: none; /* Sin bordes */
+    margin: 0;
+    font-size: 0.85rem; /* Texto más pequeño */
+}
+
+.notification.show {
+    top: 0; /* Pegado al borde superior */
+    opacity: 1;
+    visibility: visible;
+    text-align: center;
+}
+
+.notification #notificationIcon {
+    font-size: 14px; /* Icono aún más pequeño */
+    flex-shrink: 0;
+    margin-right: 8px;
+}
+
+.notification #notificationMessage {
+    font-weight: 500;
+    font-size: 0.8rem; /* Texto más pequeño */
+    line-height: 1;
+    letter-spacing: 0.2px;
+}
+
+/* Tipos de notificaciones */
+.notification.success {
+    background: var(--db-success);
+}
+
+.notification.error {
+    background: var(--db-danger);
+}
+
+.notification.warning {
+    background: var(--db-warning);
+}
+
+.notification.info {
+    background: var(--db-info);
+}
+
+/* Colores de iconos */
+.notification.success #notificationIcon {
+    color: var(--db-success);
+    text-shadow: 0 0 10px rgba(0, 255, 195, 0.4);
+}
+
+.notification.error #notificationIcon {
+    color: var(--db-danger);
+    text-shadow: 0 0 10px rgba(255, 95, 122, 0.4);
+}
+
+.notification.warning #notificationIcon {
+    color: var(--db-warning);
+    text-shadow: 0 0 10px rgba(255, 189, 47, 0.4);
+}
+
+.notification.info #notificationIcon {
+    color: var(--db-info);
+    text-shadow: 0 0 10px rgba(73, 195, 255, 0.4);
+}
+
+/* Animación de entrada */
+@keyframes slideInDown {
+    from {
+        transform: translateY(-36px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Animación de salida */
+@keyframes slideOutUp {
+    from {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateY(-36px);
+        opacity: 0;
+    }
+}
+
+/* Efecto de destello para cuando se actualiza el estado */
+@keyframes statusUpdateFlash {
+    0% {
+        color: var(--db-text-secondary);
+    }
+    30% {
+        color: var(--db-accent-primary);
+        text-shadow: 0 0 8px var(--db-accent-primary);
+    }
+    100% {
+        color: var(--db-text-secondary);
+    }
+}
+
+/* Clase para aplicar la animación del destello */
+.status-updated {
+    animation: statusUpdateFlash 1.5s ease;
+    font-weight: 500;
+}
+
+.notification.show {
+    animation: slideInDown 0.5s forwards;
+}
+
+.notification.hide {
+    animation: slideOutUp 0.5s forwards;
+}
