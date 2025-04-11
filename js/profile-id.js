@@ -262,3 +262,120 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeProfileIDSystem();
     setTimeout(updateProfileUserID, 1000); // Actualizar después de un breve retraso
 });
+
+// Añadir el botón para regenerar ID al perfil
+function setupUserIDControls() {
+    // Obtener el contenedor del ID
+    const profileUserIDContainer = document.querySelector('.profile-id-container');
+    
+    if (profileUserIDContainer && !document.getElementById('regenerateUserIDBtn')) {
+        // Crear el botón de regenerar ID
+        const regenerateBtn = document.createElement('button');
+        regenerateBtn.id = 'regenerateUserIDBtn';
+        regenerateBtn.className = 'cyber-btn small warning';
+        regenerateBtn.style.padding = '5px';
+        regenerateBtn.style.fontSize = '0.8rem';
+        regenerateBtn.style.marginLeft = '5px';
+        regenerateBtn.title = 'Generar nuevo ID';
+        regenerateBtn.innerHTML = '<i class="fas fa-sync-alt"></i>';
+        
+        // Añadir al contenedor
+        profileUserIDContainer.appendChild(regenerateBtn);
+        
+        // Añadir evento click
+        regenerateBtn.addEventListener('click', handleRegenerateUserID);
+        
+        // Añadir texto explicativo debajo
+        const regenerateInfo = document.createElement('p');
+        regenerateInfo.className = 'id-info';
+        regenerateInfo.style.fontSize = '0.75rem';
+        regenerateInfo.style.marginTop = '5px';
+        regenerateInfo.style.opacity = '0.7';
+        regenerateInfo.innerHTML = '<i class="fas fa-info-circle"></i> Puedes generar un nuevo ID si quieres cambiar tu identificador actual';
+        
+        // Añadir después del contenedor
+        profileUserIDContainer.parentNode.insertBefore(regenerateInfo, profileUserIDContainer.nextSibling);
+    }
+}
+
+// Manejar la regeneración del ID de usuario
+async function handleRegenerateUserID() {
+    try {
+        // Mostrar confirmación
+        if (!confirm('¿Estás seguro de generar un nuevo ID? Esto cambiará tu ID actual y tus amigos no podrán encontrarte con el ID anterior.')) {
+            return;
+        }
+        
+        // Mostrar cargando
+        showNotification('Generando nuevo ID...', 'info');
+        
+        // Verificar que el usuario esté autenticado
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        
+        if (!user) {
+            showNotification('Debes iniciar sesión para realizar esta acción', 'error');
+            return;
+        }
+        
+        // Verificar disponibilidad de la función
+        if (!window.userIDSystem || !window.userIDSystem.regenerateUserID) {
+            console.error('La función regenerateUserID no está disponible');
+            showNotification('Esta función no está disponible en este momento', 'error');
+            return;
+        }
+        
+        // Regenerar ID
+        const result = await window.userIDSystem.regenerateUserID(user.id);
+        
+        if (!result.success) {
+            showNotification(result.message, 'error');
+            return;
+        }
+        
+        // Actualizar ID en la UI
+        const profileUserID = document.getElementById('profileUserID');
+        if (profileUserID) {
+            profileUserID.textContent = result.newId;
+            
+            // Efecto de animación
+            profileUserID.style.transition = 'all 0.3s ease';
+            profileUserID.style.backgroundColor = 'rgba(123, 47, 249, 0.2)';
+            setTimeout(() => {
+                profileUserID.style.backgroundColor = 'transparent';
+            }, 2000);
+        }
+        
+        // Actualizar la variable global
+        window.currentUserID = result.newId;
+        
+        // Mostrar notificación de éxito
+        showNotification(`ID regenerado exitosamente: ${result.newId}`, 'success', 6000);
+        
+    } catch (error) {
+        console.error('Error al regenerar ID:', error);
+        showNotification('Error al regenerar ID', 'error');
+    }
+}
+
+// Función para mostrar notificaciones (respaldo si no existe globalmente)
+function showNotification(message, type, duration) {
+    if (typeof window.showNotification === 'function') {
+        window.showNotification(message, type, duration);
+    } else {
+        alert(`${message} (${type})`);
+    }
+}
+
+// Asegurarse de que se llame a setupUserIDControls al cargar el perfil
+document.addEventListener('DOMContentLoaded', function() {
+    // Comprobar si estamos en una página con perfil
+    if (document.querySelector('.profile-id-container')) {
+        setupUserIDControls();
+    }
+});
+
+// Exportar funciones si es necesario
+window.profileIDFunctions = {
+    setupUserIDControls,
+    handleRegenerateUserID
+};

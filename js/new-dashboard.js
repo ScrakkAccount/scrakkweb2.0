@@ -185,74 +185,111 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Función mejorada para mostrar notificaciones
-    function showNotification(message, type = 'info') {
-        const notificationElement = document.getElementById('notification');
-        const notificationMessage = document.getElementById('notificationMessage');
-        const notificationIcon = document.getElementById('notificationIcon');
+    function showNotification(message, type = 'info', duration = 4000) {
+        // Usar el sistema de notificaciones global si está disponible
+        if (typeof window.showNotification === 'function') {
+            try {
+                window.showNotification(type, message, duration);
+                return;
+            } catch (e) {
+                console.warn('Error al usar sistema de notificaciones global:', e);
+                // Continuar con el fallback
+            }
+        }
+        
+        // Fallback básico (mostrar en consola)
+        console.log(`Notificación [${type}]: ${message}`);
+        
+        // Intentar mostrar una notificación visual básica
+        try {
+            const notification = document.getElementById('notification');
+            const notificationMessage = document.getElementById('notificationMessage');
+            const notificationIcon = document.getElementById('notificationIcon');
+            
+            if (notification && notificationMessage) {
+                notificationMessage.textContent = message;
+                
+                // Asignar clase según el tipo
+                notification.className = 'notification';
+                notification.classList.add(type);
+                
+                // Establecer ícono adecuado
+                if (notificationIcon) {
+                    notificationIcon.className = 'fas';
+                    switch(type) {
+                        case 'success': notificationIcon.classList.add('fa-check-circle'); break;
+                        case 'error': notificationIcon.classList.add('fa-exclamation-circle'); break;
+                        case 'warning': notificationIcon.classList.add('fa-exclamation-triangle'); break;
+                        case 'friend': notificationIcon.classList.add('fa-user-plus'); break;
+                        default: notificationIcon.classList.add('fa-info-circle');
+                    }
+                }
+                
+                // Mostrar
+                notification.classList.add('show');
+                
+                // Ocultar después del tiempo indicado
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, duration);
+            }
+        } catch (e) {
+            console.warn('Error al mostrar notificación fallback:', e);
+        }
+    }
 
-        if (!notificationElement || !notificationMessage || !notificationIcon) {
-            console.error("Elementos de notificación no encontrados en el DOM.");
-            // Fallback si no existe el elemento
-            alert(`${type.toUpperCase()}: ${message}`);
+    // Procesar la cola de notificaciones
+    function processNotificationQueue() {
+        if (window.notificationQueue.length === 0) {
+            window.notificationProcessing = false;
             return;
         }
+        
+        window.notificationProcessing = true;
+        const { message, type, duration } = window.notificationQueue.shift();
+        
+        // Mostrar la notificación actual
+        showNotificationImmediate(message, type, duration);
+    }
 
-        // Cancelar cualquier temporizador anterior
-        if (window.notificationTimeout) {
-            clearTimeout(window.notificationTimeout);
+    // Mostrar una notificación inmediatamente
+    function showNotificationImmediate(message, type = 'info', duration = 4000) {
+        if (typeof window.showNotification === 'function') {
+            window.showNotification(type, message, duration);
+        } else {
+            console.warn('Sistema de notificaciones no disponible');
+            alert(message); // Fallback
         }
+    }
 
-        // Eliminar cualquier animación anterior
-        notificationElement.classList.remove('show', 'hide');
+    // Reproducir sonidos de notificación
+    function playNotificationSound(type) {
+        // URLs del servidor para los sonidos de notificación
+        const sounds = {
+            success: 'https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3',
+            error: 'https://notificationsounds.com/storage/sounds/file-sounds-1149-unsure.mp3',
+            warning: 'https://notificationsounds.com/storage/sounds/file-sounds-1074-piece-of-cake.mp3',
+            info: 'https://notificationsounds.com/storage/sounds/file-sounds-1085-accomplished.mp3',
+            friendRequest: 'https://notificationsounds.com/storage/sounds/file-sounds-1120-intuition.mp3'
+        };
         
-        // Resetear para forzar reflow y reiniciar la animación
-        void notificationElement.offsetWidth;
+        // Si el navegador no soporta Audio API, no reproducir nada
+        if (!window.Audio) return;
         
-        // Configurar contenido
-        notificationMessage.textContent = message;
+        // Usar un sonido por defecto si no se encuentra el tipo
+        const soundURL = sounds[type] || sounds.info;
         
-        // Tipo de notificación
-        notificationElement.className = `notification ${type}`;
-        
-        // Configurar el icono
-        notificationIcon.className = 'fas';
-        switch (type) {
-            case 'success': 
-                notificationIcon.classList.add('fa-check-circle');
-                // Reproducir sonido de éxito si se desea
-                // new Audio('path/to/success-sound.mp3').play().catch(e => {});
-                break;
-            case 'error': 
-                notificationIcon.classList.add('fa-exclamation-circle');
-                // Reproducir sonido de error si se desea
-                // new Audio('path/to/error-sound.mp3').play().catch(e => {});
-                break;
-            case 'warning': 
-                notificationIcon.classList.add('fa-exclamation-triangle'); 
-                break;
-            default: 
-                notificationIcon.classList.add('fa-info-circle'); 
-                break;
+        try {
+            // Crear un nuevo objeto de Audio y reproducirlo
+            const audio = new Audio(soundURL);
+            audio.volume = 0.5; // Volumen al 50%
+            audio.play().catch(e => {
+                // Ignorar errores de reproducción (común en algunos navegadores)
+                console.warn('No se pudo reproducir el sonido de notificación:', e);
+            });
+        } catch (e) {
+            console.warn('Error al reproducir sonido:', e);
         }
-
-        // Mostrar la notificación
-        requestAnimationFrame(() => {
-            notificationElement.classList.add('show');
-        });
-        
-        // Duración extendida para mensajes importantes
-        const duration = type === 'success' || type === 'error' ? 5000 : 3500;
-        
-        // Ocultar después del tiempo establecido
-        window.notificationTimeout = setTimeout(() => {
-            notificationElement.classList.remove('show');
-            notificationElement.classList.add('hide');
-            
-            setTimeout(() => {
-                notificationElement.classList.remove('hide');
-                notificationElement.style.visibility = 'hidden';
-            }, 500); // Tiempo de la animación de salida
-        }, duration);
     }
     
     // Función para mostrar modales (reutiliza o define globalmente)
@@ -1474,941 +1511,86 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Función para cargar contenido de la sección
     function loadSectionContent(sectionId) {
         console.log(`Cargando sección: ${sectionId}`);
-        if (!mainContentArea || !contentTitle) {
-            console.error("Área de contenido o título no encontrados.");
-            return;
+        const mainContentArea = document.getElementById('mainContentArea');
+        if (!mainContentArea) return;
+
+        // Cambiar título
+        const contentTitle = document.getElementById('contentTitle');
+        if (contentTitle) {
+            contentTitle.textContent = capitalizeFirstLetter(sectionId);
         }
 
         // Limpiar contenido anterior
-        mainContentArea.innerHTML = ''; // Limpiar área principal
+        mainContentArea.innerHTML = '';
 
-        // Cambiar título y cargar contenido según la sección
+        // Cargar el contenido adecuado
         switch (sectionId) {
             case 'home':
-                contentTitle.textContent = 'Inicio';
-                mainContentArea.innerHTML = `
-                    <h2>Actividad Reciente</h2>
-                    <p class="placeholder-text">Aquí aparecerá la actividad de tus amigos y servidores (próximamente).</p>
-                    <!-- Más contenido de inicio aquí -->
-                `;
-                // Aquí podrías llamar a una función para cargar la actividad real
-                // loadHomeActivity();
+                // Contenido de inicio
+                mainContentArea.innerHTML = getHomeHTML();
                 break;
             case 'explore':
-                contentTitle.textContent = 'Explorar Servidores Públicos';
-                mainContentArea.innerHTML = `
-                    <div class="explore-search">
-                        <!-- Añadir wrapper para icono -->
-                        <div class="input-with-icon">
-                             <i class="fas fa-search search-icon"></i>
-                             <input type="text" placeholder="Buscar servidores..." class="cyber-input">
-                        </div>
-                        <button class="cyber-btn primary small">Buscar</button> <!-- Añadida clase 'primary' -->
-                    </div>
-                    <p class="placeholder-text">Listado de servidores públicos aparecerá aquí (próximamente).</p>
-                    <!-- loadPublicServers(); -->
-                `;
-                break;
-            case 'dms': // Sección de Mensajes Directos / Amigos
-                contentTitle.textContent = 'Amigos';
-                // Usar la función loadFriendsSection de friends.js si está disponible
-                if (typeof loadFriendsSection === 'function') {
-                    loadFriendsSection();
-                    // Inicializar el sistema de amigos
-                    if (typeof initFriendsSystem === 'function') {
-                        initFriendsSystem();
-                    }
-                } else {
-                    // Fallback si friends.js no está cargado
-                    mainContentArea.innerHTML = getFriendsSectionHTML();
-                    setupFriendsSectionListeners();
-                    console.warn("Sistema de amigos no disponible. Usando interfaz básica.");
-                }
-                break;
-            default:
-                contentTitle.textContent = 'Sección Desconocida';
-                mainContentArea.innerHTML = `<p>Contenido para '${sectionId}' no implementado.</p>`;
-        }
-    }
-
-    // Añadir listeners a los items de navegación (si existen)
-    if (navItems) {
-        navItems.forEach(item => {
-            item.addEventListener('click', () => {
-                // Quitar clase activa de todos
-            navItems.forEach(i => i.classList.remove('active'));
-            // Añadir clase activa al clickeado
-            item.classList.add('active');
-            // Cargar contenido
-            const section = item.dataset.section;
-            loadSectionContent(section);
-        });
-    });
-
-    // Cargar la sección 'home' por defecto al inicio
-    // Asegúrate que esto se ejecute después de que el DOM esté listo y el usuario cargado
-    // Se puede mover dentro del try/catch del DOMContentLoaded después de cargar el perfil.
-    // loadSectionContent('home'); // Lo moveremos dentro del DOMContentLoaded
-
-    // --- HTML y Listeners para la Sección de Amigos ---
-
-    function getFriendsSectionHTML() {
-        return `
-            <div class="friends-header">
-                <div class="friends-tabs">
-                    <button class="friend-tab active" data-filter="online">En línea</button>
-                    <button class="friend-tab" data-filter="all">Todos</button>
-                    <button class="friend-tab" data-filter="pending">Pendiente</button>
-                    <button class="friend-tab" data-filter="blocked">Bloqueado</button>
-                </div>
-                <button class="cyber-btn primary small" id="addFriendBtnMain">Añadir amigo</button>
-            </div>
-            <div class="add-friend-section" style="display: none; margin-bottom: 20px;">
-                 <label for="addFriendInput">Añade un amigo con su nombre de usuario o correo</label>
-                 <div style="display: flex; gap: 10px;">
-                    <input type="text" id="addFriendInput" placeholder="usuario#1234 o usuario@ejemplo.com" class="cyber-input flex-grow">
-                    <button class="cyber-btn success small" id="sendFriendRequestBtn">Enviar solicitud</button>
-                 </div>
-                 <span id="addFriendError" class="error-message" style="margin-top: 5px;"></span>
-                 <span id="addFriendSuccess" class="success-message" style="margin-top: 5px; color: var(--db-success);"></span>
-            </div>
-            <div class="friend-list-container">
-                <h3 id="friendListTitle">En línea — 0</h3>
-                <div id="friendList" class="friend-list">
-                    <!-- La lista de amigos se cargará aquí -->
-                    <p class="placeholder-text">Nadie por aquí...</p>
-                </div>
-            </div>
-        `;
-    }
-
-    function setupFriendsSectionListeners() {
-        const addFriendBtnMain = document.getElementById('addFriendBtnMain');
-        const addFriendSection = document.querySelector('.add-friend-section');
-        const sendFriendRequestBtn = document.getElementById('sendFriendRequestBtn');
-        const addFriendInput = document.getElementById('addFriendInput');
-        const addFriendError = document.getElementById('addFriendError');
-        const addFriendSuccess = document.getElementById('addFriendSuccess');
-        const friendTabs = document.querySelectorAll('.friend-tab');
-        const friendListTitle = document.getElementById('friendListTitle');
-
-        // Mostrar/ocultar input para añadir amigo
-        if (addFriendBtnMain && addFriendSection) {
-            addFriendBtnMain.addEventListener('click', () => {
-                addFriendSection.style.display = addFriendSection.style.display === 'none' ? 'block' : 'none';
-                 if(addFriendSection.style.display === 'block') {
-                     addFriendInput.focus();
-                 }
-            });
-        }
-
-        // Enviar solicitud de amistad
-        if (sendFriendRequestBtn && addFriendInput) {
-            sendFriendRequestBtn.addEventListener('click', async () => {
-                const friendIdentifier = addFriendInput.value.trim();
-                addFriendError.textContent = ''; // Limpiar errores
-                addFriendSuccess.textContent = ''; // Limpiar éxito
-
-                if (!friendIdentifier) {
-                    addFriendError.textContent = 'Ingresa un nombre de usuario o correo.';
-                    return;
-                }
-
-                console.log(`Intentando añadir amigo: ${friendIdentifier}`);
-                showNotification(`Enviando solicitud a ${friendIdentifier}...`, 'info');
-
-                try {
-                    // Obtener el usuario actual
-                    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-                    if (userError) throw new Error("Error al obtener usuario actual");
-                    if (!user) throw new Error("No hay usuario autenticado");
-                    
-                    // Buscar al usuario por nombre de usuario
-                    const { data: targetUser, error: findError } = await supabaseClient
-                        .from('profiles')
-                        .select('id, username, full_name')
-                        .eq('username', friendIdentifier)
-                        .single();
-                    
-                    if (findError || !targetUser) {
-                        // Intentar buscar por email si no se encontró por username
-                        const { data: targetUserByEmail, error: findEmailError } = await supabaseClient
-                            .from('profiles')
-                            .select('id, username, full_name')
-                            .eq('email', friendIdentifier)
-                            .single();
-                            
-                        if (findEmailError || !targetUserByEmail) {
-                            throw new Error("Usuario no encontrado");
-                        }
-                        
-                        // Si se encontró por email, usar ese usuario
-                        targetUser = targetUserByEmail;
-                    }
-                    
-                    // Verificar que no sea uno mismo
-                    if (targetUser.id === user.id) {
-                        throw new Error("No puedes enviarte una solicitud a ti mismo");
-                    }
-                    
-                    // Verificar si ya son amigos
-                    const { data: existingFriendship, error: friendshipError } = await supabaseClient
-                        .from('friendships')
-                        .select('id')
-                        .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
-                        .or(`user1_id.eq.${targetUser.id},user2_id.eq.${targetUser.id}`);
-
-                    if (existingFriendship?.length > 0) {
-                        throw new Error("Ya existe una amistad o solicitud pendiente con este usuario");
-                    }
-
-                    // Crear la solicitud de amistad
-                    const { error: createError } = await supabaseClient
-                        .from('friendships')
-                        .insert([
-                            {
-                                user1_id: user.id,
-                                user2_id: targetUser.id,
-                                status: 'pending'
-                            }
-                        ]);
-
-                    if (createError) throw new Error("Error al enviar la solicitud");
-
-                    addFriendSuccess.textContent = `Solicitud enviada a ${targetUser.username || targetUser.full_name}`;
-                    addFriendInput.value = '';
-                    showNotification('Solicitud de amistad enviada correctamente', 'success');
-
-                } catch (error) {
-                    console.error('Error al enviar solicitud:', error);
-                    addFriendError.textContent = error.message;
-                    showNotification('Error al enviar la solicitud', 'error');
-                }
-            });
-        }
-
-        // Cambiar entre pestañas de amigos
-        if (friendTabs) {
-            friendTabs.forEach(tab => {
-                tab.addEventListener('click', () => {
-                    friendTabs.forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                    const filter = tab.dataset.filter;
-                    const friendListTitle = document.getElementById('friendListTitle');
-                    if (friendListTitle) {
-                        friendListTitle.textContent = `${tab.textContent} — 0`;
-                    }
-                    // Aquí se implementará la lógica de filtrado
-                });
-            });
-        }
-    }
-
-        // Cambiar filtro de lista de amigos (Tabs)
-        const friendTabs = document.querySelectorAll('.friend-tab');
-        if (friendTabs) {
-            friendTabs.forEach(tab => {
-                tab.addEventListener('click', () => {
-                    friendTabs.forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                    const filter = tab.dataset.filter;
-                    console.log(`Cambiando filtro de amigos a: ${filter}`);
-                    
-                    // Cargar la lista filtrada usando la función de friends.js
-                    if (filter === 'pending') {
-                        // Si es la pestaña de pendientes, mostrar solicitudes
-                        loadFriendRequests();
-                    } else {
-                        // Para otras pestañas, cargar lista de amigos con filtro
-                        loadFriendsList(filter);
-                    }
-                });
-            });
-        }
-        
-
-    // --- Selectores Adicionales para Modal de Ajustes ---
-    const settingsModal = document.getElementById('settingsModal');
-    const settingsAvatarInput = document.getElementById('settingsAvatarInput');
-    const settingsNavItems = document.querySelectorAll('.settings-nav-item');
-    const settingsTabContents = document.querySelectorAll('.settings-tab-content');
-    const logoutButtonSettings = document.getElementById('logoutButtonSettings');
-    const editFieldContainer = document.getElementById('editFieldContainer');
-    const editFieldLabelInline = document.getElementById('editFieldLabelInline');
-    const editFieldInputInline = document.getElementById('editFieldInputInline');
-    const saveEditFieldBtn = document.getElementById('saveEditFieldBtn');
-    const cancelEditFieldBtn = document.getElementById('cancelEditFieldBtn');
-    const editFieldError = document.getElementById('editFieldError');
-    const themeOptionBtns = document.querySelectorAll('.theme-option-btn');
-
-    let currentEditingField = null; // Para saber qué campo se está editando
-
-    // --- Funciones para Modal de Ajustes ---
-
-    // Cargar datos en el modal de ajustes
-    async function loadSettingsData() {
-        console.log("Iniciando carga de datos de ajustes...");
-        
-        try {
-            // 1. Obtener usuario actual
-            const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-            
-            if (userError) {
-                throw new Error("Error al obtener usuario: " + userError.message);
-            }
-            
-            if (!user) {
-                throw new Error("No se encontró sesión de usuario");
-            }
-
-            console.log("Usuario autenticado encontrado:", user.id);
-
-            // 2. Actualizar datos básicos de autenticación
-            if (settingsEmailDisplay) {
-                settingsEmailDisplay.textContent = user.email || 'No disponible';
-            }
-
-            // 3. Obtener datos del perfil
-            const { data: profile, error: profileError } = await supabaseClient
-                .from('profiles')
-                .select('*')
-                .eq('id', user.id)
-                .single();
-
-            if (profileError) {
-                console.error("Error al obtener el perfil:", profileError.message);
-                // Si hay error al obtener el perfil, mostrar datos básicos del usuario
-                updateUIWithBasicUserData(user);
-                return;
-            }
-
-            if (profile) {
-                console.log("Perfil encontrado:", profile);
-                updateUIWithProfile(profile);
-            } else {
-                console.log("No se encontró perfil, creando uno nuevo...");
-                // Crear perfil por defecto
-                const { data: newProfile, error: createError } = await supabaseClient
-                    .from('profiles')
-                    .insert([
-                        {
-                            id: user.id,
-                            full_name: user.email.split('@')[0],
-                            username: user.email.split('@')[0],
-                            avatar_url: 'img/default-avatar.png',
-                            status: 'online'
-                        }
-                    ])
-                    .single();
-
-                if (createError) {
-                    console.error("Error al crear perfil:", createError);
-                    updateUIWithBasicUserData(user);
-                } else {
-                    updateUIWithProfile(newProfile);
-                }
-            }
-
-        } catch (error) {
-            console.error("Error en loadSettingsData:", error);
-            showNotification("Error al cargar datos: " + error.message, "error");
-        }
-    }
-
-    // Función auxiliar para actualizar la UI con datos básicos del usuario
-    function updateUIWithBasicUserData(user) {
-        const defaultUsername = user.email ? user.email.split('@')[0] : 'Usuario';
-        
-        if (userNameSidebar) userNameSidebar.textContent = defaultUsername;
-        if (settingsUsernameDisplay) settingsUsernameDisplay.textContent = defaultUsername;
-        if (settingsFullNameDisplay) settingsFullNameDisplay.textContent = defaultUsername;
-        if (settingsEmailDisplay) settingsEmailDisplay.textContent = user.email || 'No disponible';
-        if (userAvatarSidebar) userAvatarSidebar.src = 'img/default-avatar.png';
-        if (settingsAvatarPreview) settingsAvatarPreview.src = 'img/default-avatar.png';
-    }
-
-    // Función auxiliar para actualizar la UI con los datos del perfil
-    function updateUIWithProfile(profile) {
-        if (userNameSidebar) {
-            userNameSidebar.textContent = profile.full_name || profile.username || 'Usuario';
-        }
-        
-        if (settingsFullNameDisplay) {
-            settingsFullNameDisplay.textContent = profile.full_name || 'No establecido';
-        }
-        
-        if (settingsUsernameDisplay) {
-            settingsUsernameDisplay.textContent = profile.username || 'No establecido';
-        }
-        
-        if (settingsEmailDisplay && profile.email) {
-            settingsEmailDisplay.textContent = profile.email;
-        }
-        
-        if (settingsAvatarPreview) {
-            settingsAvatarPreview.src = profile.avatar_url || 'img/default-avatar.png';
-            settingsAvatarPreview.onerror = () => {
-                settingsAvatarPreview.src = 'img/default-avatar.png';
-            };
-        }
-        
-        if (userAvatarSidebar) {
-            userAvatarSidebar.src = profile.avatar_url || 'img/default-avatar.png';
-            userAvatarSidebar.onerror = () => {
-                userAvatarSidebar.src = 'img/default-avatar.png';
-            };
-        }
-        
-        // Asegurarse de que haya un estado predeterminado si no hay ninguno guardado
-        // Si no tiene estado guardado, usamos 'online' como predeterminado
-        const userStatus = profile.status || 'online';
-        console.log('Cargando estado guardado del usuario:', userStatus);
-        
-        // 1. Primero forzar una actualización directa de los indicadores de estado
-        const statusDotClasses = {
-            'online': 'online',
-            'idle': 'ausente',
-            'dnd': 'no-molestar',
-            'invisible': 'invisible',
-            'offline': 'offline'
-        };
-        
-        // Aplicar la clase CSS correspondiente al estado del usuario
-        const cssClass = statusDotClasses[userStatus] || 'online';
-        
-        // 2. Actualizar el texto de estado y los indicadores en la barra lateral
-        updateStatusDisplay(userStatus);
-        
-        // 2. Actualizar manualmente los indicadores de estado para asegurar que se actualicen
-        const sidebarStatusIndicator = document.getElementById('sidebarStatusIndicator');
-        if (sidebarStatusIndicator) {
-            // Convertir entre diferentes nombres de estado
-            let cssClass = userStatus || 'offline';
-            
-            // Si el estado es 'idle', usar la clase 'ausente' para compatibilidad 
-            if (userStatus === 'idle') {
-                cssClass = 'ausente';
-            }
-            // Si el estado es 'dnd', usar la clase 'no-molestar' para compatibilidad
-            else if (userStatus === 'dnd') {
-                cssClass = 'no-molestar';
-            }
-            
-            console.log('Actualizando indicador de la barra lateral a:', userStatus, '(CSS class:', cssClass, ')');
-            console.log('Clases actuales del indicador:', sidebarStatusIndicator.className);
-            
-            // Forzar primero un estilo directo para asegurar que el color se aplique
-            switch(cssClass) {
-                case 'online':
-                    sidebarStatusIndicator.style.backgroundColor = 'var(--db-online)';
-                    break;
-                case 'ausente':
-                case 'idle':
-                    sidebarStatusIndicator.style.backgroundColor = 'var(--db-idle)';
-                    break;
-                case 'no-molestar':
-                case 'dnd':
-                    sidebarStatusIndicator.style.backgroundColor = 'var(--db-dnd)';
-                    break;
-                case 'invisible':
-                case 'offline':
-                    sidebarStatusIndicator.style.backgroundColor = 'var(--db-invisible)';
-                    break;
-                default:
-                    sidebarStatusIndicator.style.backgroundColor = 'var(--db-online)';
-            }
-            
-            // Luego también aplicar las clases CSS
-            sidebarStatusIndicator.classList.remove('online', 'ausente', 'idle', 'dnd', 'no-molestar', 'invisible', 'offline');
-            sidebarStatusIndicator.classList.add(cssClass);
-            console.log('Clases después de actualizar:', sidebarStatusIndicator.className);
-        }
-        
-        // 3. Actualizar también el indicador en el perfil (si existe)
-        const profileStatusIndicator = document.getElementById('profileStatusIndicator');
-        if (profileStatusIndicator) {
-            // Convertir entre diferentes nombres de estado
-            let cssClass = userStatus || 'offline';
-            
-            // Si el estado es 'idle', usar la clase 'ausente' para compatibilidad 
-            if (userStatus === 'idle') {
-                cssClass = 'ausente';
-            }
-            // Si el estado es 'dnd', usar la clase 'no-molestar' para compatibilidad
-            else if (userStatus === 'dnd') {
-                cssClass = 'no-molestar';
-            }
-            
-            console.log('Actualizando indicador del perfil a:', userStatus, '(CSS class:', cssClass, ')');
-            profileStatusIndicator.classList.remove('online', 'ausente', 'idle', 'dnd', 'no-molestar', 'invisible', 'offline');
-            profileStatusIndicator.classList.add(cssClass);
-        }
-    }
-
-    // Lógica para cambio de pestañas en ajustes
-    const settingsNavElements = document.querySelectorAll('.settings-nav-item');
-    if (settingsNavElements) {
-        settingsNavElements.forEach(item => {
-            item.addEventListener('click', () => {
-                // Ignorar si es el botón de logout
-            if (item.id === 'logoutButtonSettings') return;
-
-            // Ocultar campo de edición si estaba visible
-            hideEditField();
-
-            const tabId = item.dataset.tab;
-            if (!tabId) return; // Si no tiene data-tab, ignorar
-
-            // Marcar como activa la pestaña
-            settingsNavItems.forEach(i => i.classList.remove('active'));
-            item.classList.add('active');
-
-            // Mostrar el contenido de la pestaña
-            settingsTabContents.forEach(content => {
-                if (content.id === tabId) {
-                    content.classList.add('active');
-                } else {
-                    content.classList.remove('active');
-                }
-            });
-        });
-    });
-
-    // Lógica para cambiar tema (guardado simple en localStorage)
-    themeOptionBtns.forEach(btn => {
-         btn.addEventListener('click', () => {
-             themeOptionBtns.forEach(b => b.classList.remove('active'));
-             btn.classList.add('active');
-             const theme = btn.dataset.theme;
-             document.body.className = `theme-${theme}`; // Asume que tienes clases CSS como theme-dark, theme-light
-             localStorage.setItem('scrakk-theme', theme);
-             console.log(`Tema cambiado a ${theme}`);
-             // Aquí podrías aplicar estilos más complejos si es necesario
-         });
-    });
-    // Aplicar tema guardado al cargar
-    const savedTheme = localStorage.getItem('scrakk-theme') || 'dark';
-    document.body.className = `theme-${savedTheme}`;
-    document.querySelector(`.theme-option-btn[data-theme="${savedTheme}"]`)?.classList.add('active');
-    themeOptionBtns.forEach(b => { // Asegurar que solo uno esté activo
-         if(b.dataset.theme !== savedTheme) b.classList.remove('active');
-    });
-
-
-    // Mostrar campo de edición inline
-    async function editAccountField(field) {
-        currentEditingField = field;
-        editFieldError.textContent = ''; // Limpiar error
-        editFieldContainer.style.display = 'block';
-
-        try {
-            const { data: { user: currentUser }, error: userError } = await supabaseClient.auth.getUser();
-            if ((!currentUser || userError) && field !== 'password') {
-                console.error("Usuario no disponible para editar campo:", userError?.message);
-                showNotification("Error al obtener datos de usuario", "error");
-                return;
-            }
-
-
-            switch (field) {
-                case 'full_name':
-                    editFieldLabelInline.textContent = 'Nuevo nombre completo';
-                    editFieldInputInline.type = 'text';
-                    editFieldInputInline.value = settingsFullNameDisplay.textContent === '(No establecido)' ? '' : settingsFullNameDisplay.textContent;
-                    editFieldInputInline.placeholder = 'Tu nombre y apellido';
-                    break;
-                case 'email':
-                    editFieldLabelInline.textContent = 'Nuevo correo electrónico';
-                    editFieldInputInline.type = 'email';
-                    editFieldInputInline.value = settingsEmailDisplay.textContent;
-                    editFieldInputInline.placeholder = 'nuevo@ejemplo.com';
-                    break;
-                case 'password':
-                    editFieldLabelInline.textContent = 'Nueva contraseña';
-                    editFieldInputInline.type = 'password';
-                    editFieldInputInline.value = '';
-                    editFieldInputInline.placeholder = 'Introduce tu nueva contraseña segura';
-                    // Podrías añadir un campo de confirmación aquí
-                    break;
-                default:
-                    console.warn("Campo de edición no reconocido:", field);
-                    hideEditField();
-                    return;
-            }
-            editFieldInputInline.focus();
-        } catch (error) {
-            console.error("Error al preparar campo de edición:", error);
-            showNotification("Error al preparar el campo de edición", "error");
-            hideEditField();
-        }
-    }
-
-// Hide inline edit field
-function hideEditField() {
-    // Check if all required elements exist
-    if (!editFieldContainer || !editFieldInputInline || !editFieldError) {
-        console.error('Elementos de edición no encontrados');
-        return;
-    }
-    
-    // Ocultar el contenedor y limpiar los campos
-    editFieldContainer.style.display = 'none';
-    editFieldInputInline.value = '';
-    editFieldError.textContent = '';
-    currentEditingField = null;
-}
-
-// Show inline edit field
-function showEditField(field, currentValue, label) {
-    if (!editFieldContainer || !editFieldInputInline || !editFieldLabelInline) {
-        console.error('Elementos de edición no encontrados');
-        return;
-    }
-    
-    currentEditingField = field;
-    editFieldLabelInline.textContent = label;
-    editFieldInputInline.value = currentValue;
-    editFieldContainer.style.display = 'block';
-    editFieldInputInline.focus();
-}
-
-// Initialize edit field events
-function initializeEditFields() {
-    if (!saveEditFieldBtn || !editFieldInputInline || !editFieldContainer || !editFieldError) {
-        console.warn('Some edit field elements are missing');
-        return;
-    }
-
-    // Add click event to save button
-    saveEditFieldBtn.addEventListener('click', saveEditedField);
-    
-    // Cerrar al presionar Escape
-    editFieldInputInline.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') hideEditField();
-        if (e.key === 'Enter') saveEditFieldBtn.click();
-    });
-
-    // Add click event for cancel button if it exists
-    if (cancelEditFieldBtn) {
-        cancelEditFieldBtn.addEventListener('click', hideEditField);
-    }
-}
-
-// Guardar campo editado inline
-async function saveEditedField() {
-        if (!currentEditingField) {
-            console.error("No hay campo seleccionado para editar");
-            return;
-        }
-
-        const newValue = editFieldInputInline.value.trim();
-        if (!newValue) {
-            editFieldError.textContent = "Este campo no puede estar vacío";
-            return;
-        }
-
-        saveEditFieldBtn.disabled = true;
-        saveEditFieldBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
-        editFieldError.textContent = '';
-
-    try {
-        const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-        if (userError) throw userError;
-        if (!user) throw new Error("No se encontró sesión de usuario");
-
-        switch (currentEditingField) {
-            case 'full_name':
-                const { error: nameError } = await supabaseClient
-                    .from('profiles')
-                    .update({ full_name: newValue })
-                    .eq('id', user.id);
-                
-                if (nameError) throw nameError;
-                
-                if (settingsFullNameDisplay) {
-                    settingsFullNameDisplay.textContent = newValue;
-                }
-                if (userNameSidebar) {
-                    userNameSidebar.textContent = newValue;
-                }
-                showNotification("Nombre actualizado correctamente", "success");
-                break;
-
-            case 'email':
-                if (!/\S+@\S+\.\S+/.test(newValue)) {
-                    throw new Error("Por favor, introduce un email válido");
-                }
-                const { error: emailError } = await supabaseClient.auth.updateUser({
-                    email: newValue
-                });
-                if (emailError) throw emailError;
-                
-                if (settingsEmailDisplay) {
-                    settingsEmailDisplay.textContent = newValue;
-                }
-                showNotification("Email actualizado. Por favor, verifica tu nuevo correo", "success");
-                break;
-
-            case 'password':
-                if (newValue.length < 6) {
-                    throw new Error("La contraseña debe tener al menos 6 caracteres");
-                }
-                const { error: passwordError } = await supabaseClient.auth.updateUser({
-                    password: newValue
-                });
-                if (passwordError) throw passwordError;
-                
-                showNotification("Contraseña actualizada correctamente", "success");
-                break;
-
-            default:
-                throw new Error("Tipo de campo no reconocido");
-        }
-
-        hideEditField();
-
-    } catch (error) {
-        console.error("Error al guardar cambios:", error);
-        editFieldError.textContent = error.message || "Error al guardar los cambios";
-        showNotification(error.message || "Error al guardar los cambios", "error");
-    } finally {
-        saveEditFieldBtn.disabled = false;
-        saveEditFieldBtn.innerHTML = 'Guardar';
-    }
-    }
-
-    // Función para manejar el cambio de avatar
-    async function handleAvatarChange(file) {
-        if (!file || !file.type.startsWith('image/')) {
-            showNotification("Por favor, selecciona una imagen válida", "error");
-            return;
-        }
-
-        try {
-            const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-            if (userError) throw userError;
-            if (!user) throw new Error("No se encontró sesión de usuario");
-
-            const fileName = `avatar-${user.id}-${Date.now()}${file.name.substring(file.name.lastIndexOf('.'))}`;
-            
-            // Mostrar preview
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                if (settingsAvatarPreview) {
-                    settingsAvatarPreview.src = e.target.result;
-                }
-            };
-            reader.readAsDataURL(file);
-
-            showNotification("Subiendo imagen...", "info");
-
-            // Subir a Supabase Storage
-            const { data: uploadData, error: uploadError } = await supabaseClient
-                .storage
-                .from('avatars')
-                .upload(fileName, file, {
-                    cacheControl: '3600',
-                    upsert: true
-                });
-
-            if (uploadError) throw uploadError;
-
-            // Obtener URL pública
-            const { data: { publicUrl } } = supabaseClient
-                .storage
-                .from('avatars')
-                .getPublicUrl(fileName);
-
-            // Actualizar perfil con nueva URL
-            const { error: updateError } = await supabaseClient
-                .from('profiles')
-                .update({ avatar_url: publicUrl })
-                .eq('id', user.id);
-
-            if (updateError) throw updateError;
-
-            // Actualizar UI
-            if (settingsAvatarPreview) {
-                settingsAvatarPreview.src = publicUrl;
-            }
-            if (userAvatarSidebar) {
-                userAvatarSidebar.src = publicUrl;
-            }
-
-            showNotification("Avatar actualizado correctamente", "success");
-
-        } catch (error) {
-            console.error("Error al actualizar avatar:", error);
-            showNotification(error.message || "Error al actualizar avatar", "error");
-            // Revertir preview
-            if (settingsAvatarPreview) {
-                settingsAvatarPreview.src = userAvatarSidebar?.src || 'img/default-avatar.png';
-            }
-        }
-    }
-
-    // Listener para cambio de avatar
-    const settingsAvatarInput = document.getElementById('settingsAvatarInput');
-    if (settingsAvatarInput) {
-        settingsAvatarInput.addEventListener('change', (e) => {
-            const file = e.target.files?.[0];
-            if (file) {
-                handleAvatarChange(file);
-            }
-        });
-    }
-
-    // Listener para el botón Guardar del campo inline
-    if(saveEditFieldBtn) {
-         saveEditFieldBtn.addEventListener('click', saveEditedField);
-    }
-    // Listener para el botón Cancelar del campo inline
-    if(cancelEditFieldBtn) {
-         cancelEditFieldBtn.addEventListener('click', hideEditField);
-    }
-
-
-    // Logout desde el modal de ajustes
-    document.addEventListener('DOMContentLoaded', () => {
-        const logoutButtonSettings = document.getElementById('logoutButtonSettings');
-        
-        if (logoutButtonSettings) {
-            logoutButtonSettings.addEventListener('click', async () => {
-                try {
-                    console.log('Iniciando proceso de logout...');
-                    logoutButtonSettings.disabled = true;
-                    logoutButtonSettings.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cerrando sesión...';
-                    
-                    const { error } = await supabaseClient.auth.signOut();
-                    if (error) throw error;
-
-                    console.log('Logout exitoso, redirigiendo...');
-                    showNotification('Sesión cerrada correctamente', 'success');
-                    
-                    // Redirigir después de un breve delay
-                    setTimeout(() => {
-                        window.location.href = 'index.html';
-                    }, 1000);
-
-                } catch (error) {
-                    console.error('Error al cerrar sesión:', error);
-                    showNotification('Error al cerrar sesión: ' + error.message, 'error');
-                    logoutButtonSettings.disabled = false;
-                    logoutButtonSettings.innerHTML = '<i class="fas fa-sign-out-alt"></i> Cerrar sesión';
-                }
-            });
-            console.log('Evento de logout registrado correctamente');
-        } else {
-            console.error('Botón de logout no encontrado en el DOM');
-        }
-    });
-
-    // Mover la carga inicial de 'home' aquí, después de cargar el perfil
-    // Dentro del listener DOMContentLoaded, al final del bloque try/catch para cargar perfil:
-
-    // Función para manejar la navegación del dashboard
-    function handleNavigation(section) {
-        const contentTitle = document.getElementById('contentTitle');
-        const mainContentArea = document.getElementById('mainContentArea');
-        
-        // Actualizar botones de navegación
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.classList.remove('active');
-            if (item.dataset.section === section) {
-                item.classList.add('active');
-            }
-        });
-        
-        // Cargar el contenido correspondiente
-        switch (section) {
-            case 'friends':
-                loadFriendsSection();
-                break;
-            case 'home':
-                contentTitle.textContent = 'Inicio';
-                mainContentArea.innerHTML = '<p>Bienvenido a tu Dashboard Scrakk!</p>';
-                break;
-            case 'explore':
-                contentTitle.textContent = 'Explorar';
-                mainContentArea.innerHTML = '<p>Explora nuevos servidores y comunidades</p>';
+                // Contenido de explorar
+                mainContentArea.innerHTML = getExploreHTML();
                 break;
             case 'dms':
-                contentTitle.textContent = 'Mensajes Directos';
-                mainContentArea.innerHTML = '<p>Tus mensajes directos aparecerán aquí</p>';
+                // Contenido de mensajes directos
+                mainContentArea.innerHTML = getDMsHTML();
                 break;
-            default:
-                contentTitle.textContent = 'Inicio';
-                mainContentArea.innerHTML = '<p>Bienvenido a tu Dashboard Scrakk!</p>';
-        }
-    }
-
-    // Configurar listeners de navegación
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.addEventListener('click', () => {
-            const section = item.dataset.section;
-            if (section) {
-                handleNavigation(section);
-            }
-        });
-    });
-
-    // Función para cargar contenido de la sección
-    function loadSectionContent(sectionId) {
-        console.log(`Cargando sección: ${sectionId}`);
-        if (!mainContentArea || !contentTitle) {
-            console.error("Área de contenido o título no encontrados.");
-            return;
-        }
-
-        // Limpiar contenido anterior
-        mainContentArea.innerHTML = ''; // Limpiar área principal
-
-        // Cambiar título y cargar contenido según la sección
-        switch (sectionId) {
-            case 'home':
-                contentTitle.textContent = 'Inicio';
-                mainContentArea.innerHTML = `
-                    <h2>Actividad Reciente</h2>
-                    <p class="placeholder-text">Aquí aparecerá la actividad de tus amigos y servidores (próximamente).</p>
-                    <!-- Más contenido de inicio aquí -->
-                `;
-                // Aquí podrías llamar a una función para cargar la actividad real
-                // loadHomeActivity();
-                break;
-            case 'explore':
-                contentTitle.textContent = 'Explorar Servidores Públicos';
-                mainContentArea.innerHTML = `
-                    <div class="explore-search">
-                        <!-- Añadir wrapper para icono -->
-                        <div class="input-with-icon">
-                             <i class="fas fa-search search-icon"></i>
-                             <input type="text" placeholder="Buscar servidores..." class="cyber-input">
-                        </div>
-                        <button class="cyber-btn primary small">Buscar</button> <!-- Añadida clase 'primary' -->
-                    </div>
-                    <p class="placeholder-text">Listado de servidores públicos aparecerá aquí (próximamente).</p>
-                    <!-- loadPublicServers(); -->
-                `;
-                break;
-            case 'dms': // Sección de Mensajes Directos / Amigos
-                contentTitle.textContent = 'Amigos';
-                // Usar la función loadFriendsSection de friends.js si está disponible
+            case 'friends':
+                // Cargar sección de amigos si existe la función
                 if (typeof loadFriendsSection === 'function') {
                     loadFriendsSection();
-                    // Inicializar el sistema de amigos
-                    if (typeof initFriendsSystem === 'function') {
-                        initFriendsSystem();
-                    }
                 } else {
-                    // Fallback si friends.js no está cargado
                     mainContentArea.innerHTML = getFriendsSectionHTML();
                     setupFriendsSectionListeners();
-                    console.warn("Sistema de amigos no disponible. Usando interfaz básica.");
                 }
                 break;
+            case 'notifications':
+                // Usar el centro de notificaciones del archivo notifications-center.js
+                console.log('Intentando cargar sección de notificaciones...');
+                
+                // Primera opción: usar el método del objeto NotificationsCenter
+                if (window.notificationsCenter && typeof window.notificationsCenter.loadNotificationsSection === 'function') {
+                    window.notificationsCenter.loadNotificationsSection();
+                    return;
+                }
+                
+                // Segunda opción: usar la función global
+                if (typeof window.loadNotificationsSection === 'function') {
+                    window.loadNotificationsSection();
+                    return;
+                }
+                
+                // Tercera opción: usar la implementación interna
+                if (typeof loadNotificationsSection === 'function') {
+                    loadNotificationsSection();
+                    return;
+                }
+                
+                // Si no existe ninguna de las opciones, mostrar error
+                console.error('La función loadNotificationsSection no está disponible.');
+                mainContentArea.innerHTML = `
+                    <div class="notifications-panel">
+                        <div class="placeholder-text" style="text-align: center; padding: 40px;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: var(--db-warning); margin-bottom: 20px;"></i>
+                            <h3>Centro de notificaciones no disponible</h3>
+                            <p>No se pudo cargar el sistema de notificaciones. Verifica en consola si hay errores.</p>
+                            <button class="cyber-btn primary" onclick="location.reload()">
+                                <i class="fas fa-sync"></i> Recargar página
+                            </button>
+                        </div>
+                    </div>
+                `;
+                break;
             default:
-                contentTitle.textContent = 'Sección Desconocida';
-                mainContentArea.innerHTML = `<p>Contenido para '${sectionId}' no implementado.</p>`;
+                // Sección desconocida
+                mainContentArea.innerHTML = `
+                    <div class="placeholder-section">
+                        <h3>Sección en desarrollo</h3>
+                        <p>Esta funcionalidad estará disponible próximamente.</p>
+                    </div>
+                `;
         }
     }
 
@@ -2645,12 +1827,481 @@ async function saveEditedField() {
     // Inicializar eventos
     initializeEditFields();
     handleAvatarChange();
+
+    // Añadir manejador para el botón de notificaciones
+    function handleNavigation(section) {
+        console.log(`Navegando a la sección: ${section}`);
+        
+        // Actualizar pestañas activas
+        document.querySelectorAll('.nav-item').forEach(item => {
+            if (item.dataset.section === section) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+        
+        // Actualizar título de la sección
+        const contentTitle = document.getElementById('contentTitle');
+        if (contentTitle) {
+            contentTitle.textContent = capitalizeFirstLetter(section);
+        }
+        
+        // Cargar contenido según la sección
+        loadSectionContent(section);
+    }
+
+    // Cargar contenido específico de cada sección
+    function loadSectionContent(sectionId) {
+        console.log(`Cargando sección: ${sectionId}`);
+        const mainContentArea = document.getElementById('mainContentArea');
+        if (!mainContentArea) return;
+
+        // Cambiar título
+        const contentTitle = document.getElementById('contentTitle');
+        if (contentTitle) {
+            contentTitle.textContent = capitalizeFirstLetter(sectionId);
+        }
+
+        // Limpiar contenido anterior
+        mainContentArea.innerHTML = '';
+
+        // Cargar el contenido adecuado
+        switch (sectionId) {
+            case 'home':
+                // Contenido de inicio
+                mainContentArea.innerHTML = getHomeHTML();
+                break;
+            case 'explore':
+                // Contenido de explorar
+                mainContentArea.innerHTML = getExploreHTML();
+                break;
+            case 'dms':
+                // Contenido de mensajes directos
+                mainContentArea.innerHTML = getDMsHTML();
+                break;
+            case 'friends':
+                // Cargar sección de amigos si existe la función
+                if (typeof loadFriendsSection === 'function') {
+                    loadFriendsSection();
+                } else {
+                    mainContentArea.innerHTML = getFriendsSectionHTML();
+                    setupFriendsSectionListeners();
+                }
+                break;
+            case 'notifications':
+                // Usar el centro de notificaciones del archivo notifications-center.js
+                console.log('Intentando cargar sección de notificaciones...');
+                
+                // Primera opción: usar el método del objeto NotificationsCenter
+                if (window.notificationsCenter && typeof window.notificationsCenter.loadNotificationsSection === 'function') {
+                    window.notificationsCenter.loadNotificationsSection();
+                    return;
+                }
+                
+                // Segunda opción: usar la función global
+                if (typeof window.loadNotificationsSection === 'function') {
+                    window.loadNotificationsSection();
+                    return;
+                }
+                
+                // Tercera opción: usar la implementación interna
+                if (typeof loadNotificationsSection === 'function') {
+                    loadNotificationsSection();
+                    return;
+                }
+                
+                // Si no existe ninguna de las opciones, mostrar error
+                console.error('La función loadNotificationsSection no está disponible.');
+                mainContentArea.innerHTML = `
+                    <div class="notifications-panel">
+                        <div class="placeholder-text" style="text-align: center; padding: 40px;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: var(--db-warning); margin-bottom: 20px;"></i>
+                            <h3>Centro de notificaciones no disponible</h3>
+                            <p>No se pudo cargar el sistema de notificaciones. Verifica en consola si hay errores.</p>
+                            <button class="cyber-btn primary" onclick="location.reload()">
+                                <i class="fas fa-sync"></i> Recargar página
+                            </button>
+                        </div>
+                    </div>
+                `;
+                break;
+            default:
+                // Sección desconocida
+                mainContentArea.innerHTML = `
+                    <div class="placeholder-section">
+                        <h3>Sección en desarrollo</h3>
+                        <p>Esta funcionalidad estará disponible próximamente.</p>
+                    </div>
+                `;
+        }
+    }
+
+    // ... existing code ...
+
+    // Cargar sección de notificaciones
+    async function loadNotificationsSection() {
+        const mainContentArea = document.getElementById('mainContentArea');
+        
+        // Plantilla base del panel de notificaciones
+        mainContentArea.innerHTML = `
+            <div class="notifications-panel">
+                <div class="notifications-header">
+                    <div class="notifications-tabs">
+                        <button class="notification-tab active" data-type="all">Todas</button>
+                        <button class="notification-tab" data-type="friend-requests">Solicitudes</button>
+                        <button class="notification-tab" data-type="mentions">Menciones</button>
+                        <button class="notification-tab" data-type="system">Sistema</button>
+                    </div>
+                    <div class="notifications-actions">
+                        <button class="mark-all-read-btn">
+                            <i class="fas fa-check-double"></i> Marcar todo como leído
+                        </button>
+                    </div>
+                </div>
+                <div class="notifications-list" id="notificationsList">
+                    <div class="loading-placeholder" style="text-align: center; padding: 20px;">
+                        <i class="fas fa-spinner fa-spin"></i> Cargando notificaciones...
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Configurar listeners de pestañas
+        document.querySelectorAll('.notification-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.notification-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                loadNotifications(tab.dataset.type);
+            });
+        });
+        
+        // Botón para marcar todas como leídas
+        const markAllReadBtn = document.querySelector('.mark-all-read-btn');
+        markAllReadBtn.addEventListener('click', markAllNotificationsAsRead);
+        
+        // Cargar notificaciones iniciales (todas)
+        loadNotifications('all');
+    }
+
+    // Cargar notificaciones según el tipo
+    async function loadNotifications(type = 'all') {
+        const notificationsList = document.getElementById('notificationsList');
+        
+        if (!notificationsList) return;
+        
+        // Mostrar estado de carga
+        notificationsList.innerHTML = `
+            <div class="loading-placeholder" style="text-align: center; padding: 20px;">
+                <i class="fas fa-spinner fa-spin"></i> Cargando notificaciones...
+            </div>
+        `;
+        
+        try {
+            // Verificar si hay usuario autenticado
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            
+            if (!user) {
+                notificationsList.innerHTML = `
+                    <div class="placeholder-text" style="text-align: center; padding: 20px;">
+                        Inicia sesión para ver tus notificaciones
+                    </div>
+                `;
+                return;
+            }
+            
+            // Diferentes tipos de notificaciones que debemos cargar
+            let notifications = [];
+            
+            // 1. Cargar solicitudes de amistad pendientes
+            if (type === 'all' || type === 'friend-requests') {
+                const { data: friendRequests, error: requestsError } = await supabaseClient
+                    .from('friend_requests')
+                    .select(`
+                        id, 
+                        sender_id, 
+                        sender_user_id,
+                        status, 
+                        created_at, 
+                        message,
+                        profiles!friend_requests_sender_id_fkey (
+                            username, 
+                            full_name,
+                            avatar_url
+                        )
+                    `)
+                    .eq('receiver_id', user.id)
+                    .eq('status', 'pending')
+                    .order('created_at', { ascending: false });
+                    
+                if (requestsError) {
+                    console.error('Error al cargar solicitudes:', requestsError);
+                } else if (friendRequests?.length > 0) {
+                    // Convertir solicitudes a formato de notificación
+                    const friendRequestNotifications = friendRequests.map(request => {
+                        const sender = request.profiles || {};
+                        return {
+                            id: `friend-request-${request.id}`,
+                            type: 'friend-request',
+                            title: 'Nueva solicitud de amistad',
+                            message: `${sender.full_name || sender.username || 'Usuario'} quiere ser tu amigo`,
+                            avatarUrl: sender.avatar_url || 'https://i.ibb.co/ZRXTrM6w/ic-launcher.png',
+                            timestamp: request.created_at,
+                            data: {
+                                requestId: request.id,
+                                senderId: request.sender_id,
+                                senderUserID: request.sender_user_id
+                            },
+                            read: false
+                        };
+                    });
+                    
+                    notifications = [...notifications, ...friendRequestNotifications];
+                }
+            }
+            
+            // Aquí se pueden agregar más tipos de notificaciones en el futuro
+            
+            // Si no hay notificaciones
+            if (notifications.length === 0) {
+                notificationsList.innerHTML = `
+                    <div class="placeholder-text" style="text-align: center; padding: 20px;">
+                        No tienes notificaciones ${type !== 'all' ? 'de este tipo' : ''}
+                    </div>
+                `;
+                
+                // Actualizar contador del botón (ocultar si no hay notificaciones)
+                updateNotificationCount(0);
+                return;
+            }
+            
+            // Ordenar por fecha más reciente
+            notifications.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            // Actualizar contador del botón
+            updateNotificationCount(notifications.length);
+            
+            // Generar HTML para cada notificación
+            const notificationsHTML = notifications.map(notification => {
+                let actionsHTML = '';
+                
+                // Diferentes acciones según el tipo de notificación
+                if (notification.type === 'friend-request') {
+                    actionsHTML = `
+                        <div class="notification-actions">
+                            <button class="notification-btn accept" 
+                                data-request-id="${notification.data.requestId}" 
+                                data-sender-id="${notification.data.senderId}" 
+                                data-sender-user-id="${notification.data.senderUserID}">
+                                Aceptar
+                            </button>
+                            <button class="notification-btn reject" 
+                                data-request-id="${notification.data.requestId}">
+                                Rechazar
+                            </button>
+                        </div>
+                    `;
+                }
+                
+                // Formato fecha
+                const date = new Date(notification.timestamp);
+                const formattedDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+                
+                return `
+                    <div class="notification-item ${notification.read ? '' : 'unread'}" data-id="${notification.id}">
+                        <img src="${notification.avatarUrl}" alt="Avatar" class="notification-avatar">
+                        <div class="notification-content">
+                            <div class="notification-title">${notification.title}</div>
+                            <div class="notification-message">${notification.message}</div>
+                            <div class="notification-time">${formattedDate}</div>
+                            ${actionsHTML}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            notificationsList.innerHTML = notificationsHTML;
+            
+            // Agregar listeners para botones de acción
+            setupNotificationActionListeners();
+            
+        } catch (error) {
+            console.error('Error al cargar notificaciones:', error);
+            notificationsList.innerHTML = `
+                <div class="placeholder-text" style="text-align: center; padding: 20px;">
+                    Error al cargar notificaciones: ${error.message || 'Error desconocido'}
+                </div>
+            `;
+        }
+    }
+
+    // Configurar listeners para acciones de notificaciones
+    function setupNotificationActionListeners() {
+        // Botones para aceptar solicitudes de amistad
+        document.querySelectorAll('.notification-btn.accept').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const requestId = btn.dataset.requestId;
+                const senderId = btn.dataset.senderId;
+                const senderUserID = btn.dataset.senderUserId;
+                
+                // Mostrar notificación de carga
+                showNotification('info', 'Aceptando solicitud...', 2000);
+                
+                try {
+                    // Aceptar solicitud usando la función en friends.js
+                    if (typeof acceptFriendRequest === 'function') {
+                        await acceptFriendRequest(requestId, senderId, senderUserID);
+                        
+                        // Eliminar la notificación de la UI
+                        const notificationItem = btn.closest('.notification-item');
+                        if (notificationItem) {
+                            notificationItem.remove();
+                        }
+                        
+                        // Actualizar contador
+                        const remainingNotifications = document.querySelectorAll('.notification-item').length;
+                        updateNotificationCount(remainingNotifications);
+                        
+                        // Si no quedan notificaciones, mostrar mensaje
+                        if (remainingNotifications === 0) {
+                            document.getElementById('notificationsList').innerHTML = `
+                                <div class="placeholder-text" style="text-align: center; padding: 20px;">
+                                    No tienes notificaciones
+                                </div>
+                            `;
+                        }
+                        
+                        // Mostrar notificación de éxito
+                        showNotification('success', 'Solicitud aceptada correctamente', 3000);
+                    } else {
+                        throw new Error('Función acceptFriendRequest no disponible');
+                    }
+                } catch (error) {
+                    console.error('Error al aceptar solicitud:', error);
+                    showNotification('error', 'Error al aceptar solicitud', 3000);
+                }
+            });
+        });
+        
+        // Botones para rechazar solicitudes de amistad
+        document.querySelectorAll('.notification-btn.reject').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const requestId = btn.dataset.requestId;
+                
+                // Mostrar notificación de carga
+                showNotification('info', 'Rechazando solicitud...', 2000);
+                
+                try {
+                    // Rechazar solicitud usando la función en friends.js
+                    if (typeof rejectFriendRequest === 'function') {
+                        await rejectFriendRequest(requestId);
+                        
+                        // Eliminar la notificación de la UI
+                        const notificationItem = btn.closest('.notification-item');
+                        if (notificationItem) {
+                            notificationItem.remove();
+                        }
+                        
+                        // Actualizar contador
+                        const remainingNotifications = document.querySelectorAll('.notification-item').length;
+                        updateNotificationCount(remainingNotifications);
+                        
+                        // Si no quedan notificaciones, mostrar mensaje
+                        if (remainingNotifications === 0) {
+                            document.getElementById('notificationsList').innerHTML = `
+                                <div class="placeholder-text" style="text-align: center; padding: 20px;">
+                                    No tienes notificaciones
+                                </div>
+                            `;
+                        }
+                        
+                        // Mostrar notificación de éxito
+                        showNotification('info', 'Solicitud rechazada', 3000);
+                    } else {
+                        throw new Error('Función rejectFriendRequest no disponible');
+                    }
+                } catch (error) {
+                    console.error('Error al rechazar solicitud:', error);
+                    showNotification('error', 'Error al rechazar solicitud', 3000);
+                }
+            });
+        });
+    }
+
+    // Marcar todas las notificaciones como leídas
+    function markAllNotificationsAsRead() {
+        // Marcar todas las notificaciones visibles como leídas
+        document.querySelectorAll('.notification-item.unread').forEach(item => {
+            item.classList.remove('unread');
+        });
+        
+        // Actualizar contador
+        updateNotificationCount(0);
+        
+        // Mostrar notificación
+        showNotification('success', 'Todas las notificaciones marcadas como leídas', 3000);
+    }
+
+    // Actualizar contador de notificaciones en el botón de la barra lateral
+    function updateNotificationCount(count) {
+        const badge = document.getElementById('notificationCountBadge');
+        
+        if (!badge) return;
+        
+        if (count > 0) {
+            badge.textContent = count;
+            badge.style.display = 'flex';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+
+    // Función auxiliar para capitalizar primera letra
+    function capitalizeFirstLetter(string) {
+        return string.charAt(0).toUpperCase() + string.slice(1);
+    }
+
+    // ... existing code ...
+    // Inicializar al cargar el documento
+    document.addEventListener('DOMContentLoaded', () => {
+        initializeDashboard();
+    });
+
+    // Función para obtener el HTML de la sección Home
+    function getHomeHTML() {
+        return `
+            <div class="home-content">
+                <h2>Actividad Reciente</h2>
+                <p class="placeholder-text">Aquí aparecerá la actividad de tus amigos y servidores (próximamente).</p>
+            </div>
+        `;
+    }
+
+    // Función para obtener el HTML de la sección Explorar
+    function getExploreHTML() {
+        return `
+            <div class="explore-content">
+                <div class="explore-search">
+                    <div class="input-with-icon">
+                        <input type="text" placeholder="Buscar servidores..." class="cyber-input">
+                        <i class="fas fa-search search-icon"></i>
+                    </div>
+                    <button class="cyber-btn primary small">Buscar</button>
+                </div>
+                <p class="placeholder-text">Listado de servidores públicos aparecerá aquí (próximamente).</p>
+            </div>
+        `;
+    }
+
+    // Función para obtener el HTML de la sección Mensajes Directos
+    function getDMsHTML() {
+        return `
+            <div class="dms-content">
+                <h2>Mensajes Directos</h2>
+                <p class="placeholder-text">Aquí aparecerán tus conversaciones (próximamente).</p>
+            </div>
+        `;
+    }
+}
 }
 
-// Inicializar al cargar el documento
-document.addEventListener('DOMContentLoaded', () => {
-    initializeDashboard();
-});
-}
-}
-}

@@ -1,134 +1,208 @@
-/* Estilos mejorados para notificaciones */
+/* Variables de colores y estilos */
+:root {
+    --notification-bg: rgba(30, 30, 30, 0.95);
+    --notification-border: 1px solid rgba(255, 255, 255, 0.1);
+    --notification-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    --notification-success: #4CAF50;
+    --notification-error: #F44336;
+    --notification-warning: #FFC107;
+    --notification-info: #2196F3;
+    --notification-friend: #9C27B0;
+}
 
+/* Notificación principal */
 .notification {
     position: fixed;
-    top: -50px; /* Empieza fuera de pantalla desde arriba */
-    left: 0;
-    right: 0;
-    width: 100%; /* Barra de ancho completo */
-    height: 36px; /* Altura muy reducida */
-    background: rgba(18, 18, 42, 0.95); /* Fondo semitransparente */
-    color: #fff;
-    padding: 0; /* Sin padding */
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+    top: 20px;
+    right: 20px;
+    min-width: 300px;
+    max-width: 400px;
+    padding: 15px 20px;
+    background: var(--notification-bg);
+    border: var(--notification-border);
+    border-radius: 8px;
+    box-shadow: var(--notification-shadow);
     display: flex;
     align-items: center;
-    justify-content: center; /* Centrado horizontal */
-    z-index: 10000; /* Valor más alto para estar encima de todo */
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.3s ease-out;
-    border: none; /* Sin bordes */
-    margin: 0;
-    font-size: 0.85rem; /* Texto más pequeño */
+    gap: 12px;
+    transform: translateX(120%);
+    transition: transform 0.3s ease-in-out;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
 }
 
 .notification.show {
-    top: 0; /* Pegado al borde superior */
-    opacity: 1;
-    visibility: visible;
-    text-align: center;
+    transform: translateX(0);
 }
 
-.notification #notificationIcon {
-    font-size: 14px; /* Icono aún más pequeño */
-    flex-shrink: 0;
-    margin-right: 8px;
+/* Iconos de notificación */
+.notification i {
+    font-size: 1.2em;
 }
 
-.notification #notificationMessage {
-    font-weight: 500;
-    font-size: 0.8rem; /* Texto más pequeño */
-    line-height: 1;
-    letter-spacing: 0.2px;
+/* Mensaje de notificación */
+.notification span {
+    flex: 1;
+    color: #fff;
+    font-size: 0.95em;
+    line-height: 1.4;
 }
 
 /* Tipos de notificaciones */
 .notification.success {
-    background: var(--db-success);
+    border-left: 4px solid var(--notification-success);
 }
 
 .notification.error {
-    background: var(--db-danger);
+    border-left: 4px solid var(--notification-error);
 }
 
 .notification.warning {
-    background: var(--db-warning);
+    border-left: 4px solid var(--notification-warning);
 }
 
 .notification.info {
-    background: var(--db-info);
+    border-left: 4px solid var(--notification-info);
 }
 
-/* Colores de iconos */
-.notification.success #notificationIcon {
-    color: var(--db-success);
-    text-shadow: 0 0 10px rgba(0, 255, 195, 0.4);
+.notification.friend {
+    border-left: 4px solid var(--notification-friend);
 }
 
-.notification.error #notificationIcon {
-    color: var(--db-danger);
-    text-shadow: 0 0 10px rgba(255, 95, 122, 0.4);
+/* Notificaciones flotantes */
+.floating-notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    min-width: 250px;
+    max-width: 350px;
+    padding: 12px 16px;
+    background: var(--notification-bg);
+    border: var(--notification-border);
+    border-radius: 8px;
+    box-shadow: var(--notification-shadow);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transform: translateY(120%);
+    transition: transform 0.3s ease-in-out;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
 }
 
-.notification.warning #notificationIcon {
-    color: var(--db-warning);
-    text-shadow: 0 0 10px rgba(255, 189, 47, 0.4);
+.floating-notification.show {
+    transform: translateY(0);
 }
 
-.notification.info #notificationIcon {
-    color: var(--db-info);
-    text-shadow: 0 0 10px rgba(73, 195, 255, 0.4);
+.floating-notification .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
 }
 
-/* Animación de entrada */
-@keyframes slideInDown {
+.floating-notification .content {
+    flex: 1;
+}
+
+.floating-notification .title {
+    color: #fff;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.floating-notification .message {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9em;
+}
+
+.floating-notification .action {
+    margin-left: auto;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    color: #fff;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.floating-notification .action:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Animaciones */
+@keyframes slideIn {
     from {
-        transform: translateY(-36px);
-        opacity: 0;
+        transform: translateX(120%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(120%);
+    }
+}
+
+@keyframes floatIn {
+    from {
+        transform: translateY(120%);
     }
     to {
         transform: translateY(0);
-        opacity: 1;
     }
 }
 
-/* Animación de salida */
-@keyframes slideOutUp {
+@keyframes floatOut {
     from {
         transform: translateY(0);
-        opacity: 1;
     }
     to {
-        transform: translateY(-36px);
-        opacity: 0;
+        transform: translateY(120%);
     }
 }
 
-/* Efecto de destello para cuando se actualiza el estado */
-@keyframes statusUpdateFlash {
-    0% {
-        color: var(--db-text-secondary);
+/* Responsive */
+@media (max-width: 768px) {
+    .notification {
+        min-width: auto;
+        max-width: 90%;
+        right: 5%;
     }
-    30% {
-        color: var(--db-accent-primary);
-        text-shadow: 0 0 8px var(--db-accent-primary);
-    }
-    100% {
-        color: var(--db-text-secondary);
+    
+    .floating-notification {
+        min-width: auto;
+        max-width: 90%;
+        right: 5%;
     }
 }
 
-/* Clase para aplicar la animación del destello */
-.status-updated {
-    animation: statusUpdateFlash 1.5s ease;
-    font-weight: 500;
+/* Estilos para el indicador de notificaciones */
+.notification-count {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background-color: #ef4444;
+    color: white;
+    font-size: 0.75rem;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    z-index: 100;
+    pointer-events: none; /* Para que no interfiera con clics */
 }
 
-.notification.show {
-    animation: slideInDown 0.5s forwards;
-}
-
-.notification.hide {
-    animation: slideOutUp 0.5s forwards;
+/* Asegurar que permanezca visible cuando está en otra página */
+.nav-item[data-section="notifications"] {
+    position: relative;
 }

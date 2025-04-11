@@ -12,6 +12,482 @@ if (typeof window.friendsSystemInitialized === 'undefined') window.friendsSystem
 // NO crear alias locales, usar directamente window.X para evitar redeclaraciones
 // Estas líneas causaban el error 'Identifier has already been declared'
 
+// Sistema de Amigos Mejorado
+class FriendsSystem {
+    constructor() {
+        this.initialized = false;
+        this.currentUser = null;
+        this.currentUserID = null;
+        this.friendRequestsChannel = null;
+    }
+
+    async init() {
+        if (this.initialized) return;
+        
+        console.log("Inicializando sistema de amigos...");
+        
+        try {
+            // Obtener usuario actual
+            const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+            
+            if (userError) throw new Error("Error al obtener usuario actual");
+            if (!user) throw new Error("No hay usuario autenticado");
+            
+            this.currentUser = user;
+            
+            // Asegurar que el usuario tenga un ID personalizado
+            this.currentUserID = await userIDSystem.ensureUserHasID(user.id);
+            
+            // Verificar tablas necesarias
+            await this.setupFriendshipTables();
+            
+            // Configurar suscripciones en tiempo real
+            this.setupRealtimeSubscriptions();
+            
+            this.initialized = true;
+            console.log("Sistema de amigos inicializado correctamente");
+            
+        } catch (error) {
+            console.error("Error al inicializar sistema de amigos:", error);
+            showNotification("Error al inicializar sistema de amigos", "error");
+        }
+    }
+
+    async setupFriendshipTables() {
+        // Verificar y crear tablas si no existen
+        const tables = ['friendships', 'friend_requests'];
+        
+        for (const table of tables) {
+            const { error } = await supabaseClient
+                .from(table)
+                .select('id')
+                .limit(1);
+                
+            if (error) {
+                console.error(`Error al verificar tabla ${table}:`, error);
+                showNotification(`Error al verificar tabla ${table}`, "error");
+            }
+        }
+    }
+
+    setupRealtimeSubscriptions() {
+        if (!this.currentUser) return;
+        
+        // Suscribirse a cambios en solicitudes de amistad
+        this.friendRequestsChannel = supabaseClient
+            .channel('friend_requests_changes')
+            .on('postgres_changes', 
+                { 
+                    event: '*', 
+                    schema: 'public', 
+                    table: 'friend_requests', 
+                    filter: `receiver_id=eq.${this.currentUser.id}` 
+                },
+                this.handleFriendRequestChange.bind(this)
+            )
+            .subscribe((status) => {
+                console.log("Estado de suscripción a solicitudes:", status);
+                
+                if (status === 'CHANNEL_ERROR') {
+                    console.error("Error en la suscripción a solicitudes");
+                    setTimeout(() => this.setupRealtimeSubscriptions(), 5000);
+                }
+            });
+    }
+
+    async handleFriendRequestChange(payload) {
+        console.log("Cambio en solicitud de amistad:", payload);
+        
+        if (payload.eventType === 'INSERT' && payload.new?.status === 'pending') {
+            await this.handleNewFriendRequest(payload.new);
+        } else if (payload.eventType === 'UPDATE') {
+            await this.handleFriendRequestUpdate(payload.new);
+        }
+    }
+
+    async handleNewFriendRequest(request) {
+        try {
+            // Obtener datos del remitente
+            const { data: senderProfile } = await supabaseClient
+                .from('profiles')
+                .select('username, full_name, avatar_url')
+                .eq('id', request.sender_id)
+                .single();
+            
+            const senderName = senderProfile?.full_name || senderProfile?.username || "Alguien";
+            
+            // Mostrar notificación principal
+            showNotification(
+                `¡${senderName} te ha enviado una solicitud de amistad!`,
+                'friend-request',
+                8000
+            );
+            
+            // Mostrar notificación flotante
+            showFloatingNotification({
+                title: 'Nueva solicitud de amistad',
+                message: `${senderName} quiere ser tu amigo`,
+                type: 'friend-request',
+                icon: 'user-plus',
+                avatar: senderProfile?.avatar_url,
+                duration: 10000,
+                action: () => this.openFriendRequests()
+            });
+            
+            // Recargar solicitudes
+            await this.loadFriendRequests();
+            
+        } catch (error) {
+            console.error("Error al procesar nueva solicitud:", error);
+            showNotification("Has recibido una nueva solicitud de amistad", 'friend-request');
+        }
+    }
+
+    async handleFriendRequestUpdate(request) {
+        if (request.status === 'accepted') {
+            showNotification("¡Nuevo amigo añadido!", "success");
+            await this.loadFriendsList();
+        }
+    }
+
+    async sendFriendRequest(friendID) {
+        try {
+            if (!this.initialized) await this.init();
+            
+            // Validar ID
+            if (!userIDSystem.isValidUserID(friendID)) {
+                showNotification("ID de usuario inválido", "error");
+                return false;
+            }
+            
+            // Buscar usuario
+            const user = await userIDSystem.findUserByID(friendID);
+            if (!user) {
+                showNotification("Usuario no encontrado", "error");
+                return false;
+            }
+            
+            // Verificar que no sea el mismo usuario
+            if (user.id === this.currentUser.id) {
+                showNotification("No puedes enviarte una solicitud a ti mismo", "warning");
+                return false;
+            }
+            
+            // Verificar si ya son amigos
+            const { data: existingFriendship } = await supabaseClient
+                .from('friendships')
+                .select('id')
+                .or(`and(user1_id.eq.${this.currentUser.id},user2_id.eq.${user.id}),and(user1_id.eq.${user.id},user2_id.eq.${this.currentUser.id})`)
+                .maybeSingle();
+                
+            if (existingFriendship) {
+                showNotification("Ya son amigos", "info");
+                return false;
+            }
+            
+            // Verificar solicitudes existentes
+            const { data: existingRequest } = await supabaseClient
+                .from('friend_requests')
+                .select('id, status')
+                .eq('sender_id', this.currentUser.id)
+                .eq('receiver_id', user.id)
+                .maybeSingle();
+                
+            if (existingRequest) {
+                if (existingRequest.status === 'pending') {
+                    showNotification("Ya enviaste una solicitud a este usuario", "info");
+                    return false;
+                } else if (existingRequest.status === 'rejected') {
+                    showNotification("Este usuario rechazó tu solicitud anteriormente", "warning");
+                    return false;
+                }
+            }
+            
+            // Verificar si el otro usuario ya envió una solicitud
+            const { data: receivedRequest } = await supabaseClient
+                .from('friend_requests')
+                .select('id, status')
+                .eq('sender_id', user.id)
+                .eq('receiver_id', this.currentUser.id)
+                .maybeSingle();
+                
+            if (receivedRequest?.status === 'pending') {
+                showNotification("Este usuario ya te envió una solicitud. Aceptando automáticamente.", "success");
+                await this.acceptFriendRequest(receivedRequest.id, user.id, friendID);
+                return true;
+            }
+            
+            // Enviar nueva solicitud
+            const { error: requestError } = await supabaseClient
+                .from('friend_requests')
+                .insert([{
+                    sender_id: this.currentUser.id,
+                    receiver_id: user.id,
+                    sender_user_id: this.currentUserID,
+                    receiver_user_id: friendID,
+                    status: 'pending',
+                    message: 'Hola, me gustaría añadirte como amigo'
+                }]);
+                
+            if (requestError) throw requestError;
+            
+            showNotification("Solicitud enviada exitosamente", "success");
+            return true;
+            
+        } catch (error) {
+            console.error("Error al enviar solicitud:", error);
+            showNotification("Error al enviar la solicitud", "error");
+            return false;
+        }
+    }
+
+    async acceptFriendRequest(requestId, senderId, senderUserID) {
+        try {
+            if (!this.initialized) await this.init();
+            
+            // Actualizar estado de la solicitud
+            const { error: updateError } = await supabaseClient
+                .from('friend_requests')
+                .update({ status: 'accepted' })
+                .eq('id', requestId);
+                
+            if (updateError) throw updateError;
+            
+            // Crear amistad
+            const { error: friendshipError } = await supabaseClient
+                .from('friendships')
+                .insert([{
+                    user1_id: this.currentUser.id,
+                    user2_id: senderId,
+                    user1_user_id: this.currentUserID,
+                    user2_user_id: senderUserID
+                }]);
+                
+            if (friendshipError) throw friendshipError;
+            
+            showNotification("Solicitud aceptada", "success");
+            await this.loadFriendRequests();
+            await this.loadFriendsList();
+            
+        } catch (error) {
+            console.error("Error al aceptar solicitud:", error);
+            showNotification("Error al aceptar la solicitud", "error");
+        }
+    }
+
+    async rejectFriendRequest(requestId) {
+        try {
+            if (!this.initialized) await this.init();
+            
+            const { error } = await supabaseClient
+                .from('friend_requests')
+                .update({ status: 'rejected' })
+                .eq('id', requestId);
+                
+            if (error) throw error;
+            
+            showNotification("Solicitud rechazada", "info");
+            await this.loadFriendRequests();
+            
+        } catch (error) {
+            console.error("Error al rechazar solicitud:", error);
+            showNotification("Error al rechazar la solicitud", "error");
+        }
+    }
+
+    async loadFriendRequests() {
+        try {
+            if (!this.initialized) await this.init();
+            
+            const { data: requests, error } = await supabaseClient
+                .from('friend_requests')
+                .select('id, sender_id, sender_user_id, status, created_at, message')
+                .eq('receiver_id', this.currentUser.id)
+                .eq('status', 'pending')
+                .order('created_at', { ascending: false });
+                
+            if (error) throw error;
+            
+            // Actualizar UI
+            this.updateFriendRequestsUI(requests);
+            
+            return requests;
+            
+        } catch (error) {
+            console.error("Error al cargar solicitudes:", error);
+            showNotification("Error al cargar solicitudes", "error");
+            return [];
+        }
+    }
+
+    async loadFriendsList(filter = 'all') {
+        try {
+            if (!this.initialized) await this.init();
+            
+            let query = supabaseClient
+                .from('friendships')
+                .select(`
+                    id,
+                    user1_id,
+                    user2_id,
+                    user1_user_id,
+                    user2_user_id,
+                    created_at,
+                    profiles!friendships_user1_id_fkey(username, full_name, avatar_url, status),
+                    profiles!friendships_user2_id_fkey(username, full_name, avatar_url, status)
+                `)
+                .or(`user1_id.eq.${this.currentUser.id},user2_id.eq.${this.currentUser.id}`);
+                
+            if (filter === 'online') {
+                query = query.or('profiles!friendships_user1_id_fkey.status.eq.online,profiles!friendships_user2_id_fkey.status.eq.online');
+            }
+            
+            const { data: friendships, error } = await query;
+            
+            if (error) throw error;
+            
+            // Actualizar UI
+            this.updateFriendsListUI(friendships, filter);
+            
+            return friendships;
+            
+        } catch (error) {
+            console.error("Error al cargar lista de amigos:", error);
+            showNotification("Error al cargar lista de amigos", "error");
+            return [];
+        }
+    }
+
+    updateFriendRequestsUI(requests) {
+        const pendingTab = document.getElementById('pendingTab');
+        const friendList = document.getElementById('friendList');
+        
+        if (!pendingTab || !friendList) return;
+        
+        // Actualizar contador
+        const countBadge = pendingTab.querySelector('.pending-count') || document.createElement('span');
+        countBadge.className = 'pending-count';
+        countBadge.textContent = requests?.length || 0;
+        
+        if (requests?.length > 0 && !pendingTab.contains(countBadge)) {
+            pendingTab.appendChild(countBadge);
+        } else if (requests?.length === 0 && pendingTab.contains(countBadge)) {
+            countBadge.remove();
+        }
+        
+        // Actualizar lista
+        if (document.querySelector('.friend-tab.active')?.id === 'pendingTab') {
+            if (requests?.length > 0) {
+                friendList.innerHTML = requests.map(request => this.createFriendRequestHTML(request)).join('');
+                this.setupRequestButtons();
+            } else {
+                friendList.innerHTML = '<p class="placeholder-text">No tienes solicitudes pendientes</p>';
+            }
+        }
+    }
+
+    updateFriendsListUI(friendships, filter) {
+        const friendList = document.getElementById('friendList');
+        if (!friendList) return;
+        
+        if (friendships?.length > 0) {
+            friendList.innerHTML = friendships
+                .map(friendship => this.createFriendItemHTML(friendship))
+                .join('');
+        } else {
+            friendList.innerHTML = `<p class="placeholder-text">No tienes amigos ${filter === 'online' ? 'en línea' : ''}</p>`;
+        }
+    }
+
+    createFriendRequestHTML(request) {
+        return `
+            <div class="friend-request-item" data-request-id="${request.id}">
+                <div class="friend-request-info">
+                    <h4>${request.sender_user_id}</h4>
+                    <p>${request.message || 'Hola, me gustaría añadirte como amigo'}</p>
+                    <small>${new Date(request.created_at).toLocaleString()}</small>
+                </div>
+                <div class="friend-request-actions">
+                    <button class="friend-action-btn accept-btn" data-request-id="${request.id}" data-sender-id="${request.sender_id}" data-sender-user-id="${request.sender_user_id}">
+                        <i class="fas fa-check"></i>
+                    </button>
+                    <button class="friend-action-btn reject-btn" data-request-id="${request.id}">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    createFriendItemHTML(friendship) {
+        const friend = friendship.user1_id === this.currentUser.id ? 
+            friendship.profiles_friendships_user2_id_fkey : 
+            friendship.profiles_friendships_user1_id_fkey;
+            
+        return `
+            <div class="friend-item" data-friend-id="${friend.id}">
+                <img src="${friend.avatar_url || 'https://i.ibb.co/ZRXTrM6w/ic-launcher.png'}" alt="Avatar" class="friend-avatar">
+                <div class="friend-info">
+                    <h4>${friend.full_name || friend.username}</h4>
+                    <p class="friend-status ${friend.status}">${this.getStatusText(friend.status)}</p>
+                </div>
+                <div class="friend-actions">
+                    <button class="friend-action-btn chat-btn" title="Enviar mensaje">
+                        <i class="fas fa-comment"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    setupRequestButtons() {
+        document.querySelectorAll('.accept-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const requestId = btn.dataset.requestId;
+                const senderId = btn.dataset.senderId;
+                const senderUserID = btn.dataset.senderUserId;
+                
+                showNotification('Aceptando solicitud...', 'info');
+                this.acceptFriendRequest(requestId, senderId, senderUserID);
+            });
+        });
+        
+        document.querySelectorAll('.reject-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const requestId = btn.dataset.requestId;
+                showNotification('Rechazando solicitud...', 'info');
+                this.rejectFriendRequest(requestId);
+            });
+        });
+    }
+
+    getStatusText(status) {
+        const statusTexts = {
+            online: 'En línea',
+            idle: 'Ausente',
+            dnd: 'No molestar',
+            invisible: 'Invisible',
+            offline: 'Desconectado'
+        };
+        return statusTexts[status] || 'Desconectado';
+    }
+
+    openFriendRequests() {
+        const friendsNavBtn = document.querySelector('.nav-item[data-section="friends"]');
+        if (friendsNavBtn) {
+            friendsNavBtn.click();
+            setTimeout(() => {
+                const pendingTab = document.getElementById('pendingTab');
+                if (pendingTab) pendingTab.click();
+            }, 300);
+        }
+    }
+}
+
+// Inicializar sistema de amigos
+window.friendsSystem = new FriendsSystem();
+window.friendsSystem.init();
+
 // Inicialización del sistema de amigos
 async function initFriendsSystem() {
     console.log("Inicializando sistema de amigos...");
@@ -86,49 +562,110 @@ async function setupFriendshipTables() {
 
 // Configurar suscripciones en tiempo real
 function setupRealtimeSubscriptions() {
-    // Suscribirse a solicitudes de amistad
     // Verificar que tengamos un usuario antes de suscribirnos
     if (!window.currentUser || !window.currentUser.id) {
         console.warn("No hay usuario autenticado para suscripciones en tiempo real");
         return;
     }
+
+    // Si ya existe una suscripción activa, removerla primero
+    if (window.friendRequestsChannel) {
+        console.log("Removiendo suscripción existente antes de crear una nueva");
+        window.friendRequestsChannel.unsubscribe();
+    }
     
-    const friendRequestsSubscription = supabaseClient
-        .channel('friend_requests_channel')
+    console.log("Configurando suscripciones en tiempo real para solicitudes de amistad");
+    
+    // Canal para solicitudes de amistad
+    const userId = window.currentUser.id;
+    console.log(`Creando suscripción para el usuario ${userId}`);
+    
+    window.friendRequestsChannel = supabaseClient
+        .channel('friend_requests_changes')
         .on('postgres_changes', 
-            { event: '*', schema: 'public', table: 'friend_requests', filter: `receiver_id=eq.${window.currentUser.id}` },
-            (payload) => {
-                console.log("Cambio en solicitudes de amistad:", payload);
-                // Actualizar la lista de solicitudes
-                loadFriendRequests();
-                // Mostrar notificación
-                if (payload.eventType === 'INSERT') {
-                    showNotification("¡Nueva solicitud de amistad recibida!", "info");
+            { event: '*', schema: 'public', table: 'friend_requests', filter: `receiver_id=eq.${userId}` },
+            async (payload) => {
+                console.log("Cambio detectado en solicitudes de amistad:", payload);
+                
+                // Verificar el tipo de evento
+                if (payload.eventType === 'INSERT' && payload.new && payload.new.status === 'pending') {
+                    console.log("Nueva solicitud de amistad recibida");
+                    
+                    // Buscar datos del remitente para la notificación
+                    try {
+                        const { data: senderProfile } = await supabaseClient
+                            .from('profiles')
+                            .select('username, full_name, avatar_url')
+                            .eq('id', payload.new.sender_id)
+                            .single();
+                        
+                        const senderName = senderProfile?.full_name || senderProfile?.username || "Alguien";
+                        
+                        // Mostrar notificación
+                        showNotification(`¡${senderName} te ha enviado una solicitud de amistad!`, 'friend-request', 8000);
+                        
+                        // Mostrar notificación flotante más detallada
+                        showFloatingNotification({
+                            title: 'Nueva solicitud de amistad',
+                            message: `${senderName} quiere ser tu amigo`,
+                            type: 'friend-request',
+                            icon: 'user-plus',
+                            duration: 10000,
+                            sound: 'friend-request',
+                            action: () => {
+                                // Cargar la sección de amigos
+                                const friendsNavBtn = document.querySelector('.nav-item[data-section="friends"]');
+                                if (friendsNavBtn) {
+                                    friendsNavBtn.click();
+                                    
+                                    // Activar la pestaña de pendientes
+                                    setTimeout(() => {
+                                        const pendingTab = document.getElementById('pendingTab');
+                                        if (pendingTab) pendingTab.click();
+                                    }, 300);
+                                }
+                            }
+                        });
+                        
+                        // Reproducir sonido
+                        playNotificationSound('friend-request');
+                    } catch (error) {
+                        console.error("Error al obtener datos del remitente:", error);
+                        showNotification("Has recibido una nueva solicitud de amistad", 'friend-request');
+                    }
+                    
+                    // Recargar solicitudes para actualizar UI
+                    loadFriendRequests().catch(err => {
+                        console.error("Error al recargar solicitudes:", err);
+                    });
+                } 
+                // Actualización de estado (aceptada/rechazada)
+                else if (payload.eventType === 'UPDATE') {
+                    console.log(`Solicitud de amistad actualizada a estado: ${payload.new.status}`);
+                    
+                    // Recargar la lista de amigos si la solicitud fue aceptada
+                    if (payload.new.status === 'accepted') {
+                        loadFriendsList().catch(err => {
+                            console.error("Error al recargar lista de amigos:", err);
+                        });
+                    }
                 }
             }
         )
         .subscribe((status) => {
-            console.log(`Suscripción a solicitudes de amistad: ${status}`);
-        });
-    
-    // Suscribirse a mensajes nuevos
-    const messagesSubscription = supabaseClient
-        .channel('messages_channel')
-        .on('postgres_changes',
-            { event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${window.currentUser.id}` },
-            (payload) => {
-                console.log("Nuevo mensaje recibido:", payload);
-                // Actualizar el chat si está abierto
-                if (activeChatId === payload.new.sender_id) {
-                    appendMessageToChat(payload.new);
-                } else {
-                    // Mostrar notificación
-                    showNotification("Nuevo mensaje recibido", "info");
-                }
+            console.log("Estado de suscripción a solicitudes de amistad:", status);
+            
+            if (status === 'SUBSCRIBED') {
+                console.log("✅ Suscripción a solicitudes de amistad activa");
+            } else if (status === 'CHANNEL_ERROR') {
+                console.error("❌ Error en la suscripción a solicitudes de amistad");
+                
+                // Reintentar después de un tiempo
+                setTimeout(() => {
+                    console.log("Reintentando suscripción...");
+                    setupRealtimeSubscriptions();
+                }, 5000);
             }
-        )
-        .subscribe((status) => {
-            console.log(`Suscripción a mensajes: ${status}`);
         });
 }
 
@@ -394,92 +931,159 @@ function setupFriendsListeners() {
 
 // Enviar solicitud de amistad
 async function sendFriendRequest() {
-    const addFriendInput = document.getElementById('addFriendInput');
-    const addFriendError = document.getElementById('addFriendError');
-    const addFriendSuccess = document.getElementById('addFriendSuccess');
-    
-    // Limpiar mensajes anteriores
-    if (addFriendError) addFriendError.textContent = '';
-    if (addFriendSuccess) addFriendSuccess.textContent = '';
-    
-    const username = addFriendInput.value.trim();
-    
-    if (!username) {
-        if (addFriendError) addFriendError.textContent = 'Por favor, ingresa un nombre de usuario';
-        return;
-    }
-    
     try {
-        // Buscar al usuario por nombre de usuario
-        const { data: targetUser, error: findError } = await supabaseClient
-            .from('profiles')
-            .select('id, username, full_name')
-            .eq('username', username)
-            .single();
+        // Obtener el valor del ID ingresado
+        const friendIDInput = document.getElementById('addFriendInput');
         
-        if (findError || !targetUser) {
-            if (addFriendError) addFriendError.textContent = 'Usuario no encontrado';
+        if (!friendIDInput) {
+            console.error("No se encontró el campo de entrada de ID");
+            showNotification("Error al procesar la solicitud", "error");
             return;
         }
         
-        // Verificar que no sea uno mismo
-        if (targetUser.id === currentUser.id) {
-            if (addFriendError) addFriendError.textContent = 'No puedes enviarte una solicitud a ti mismo';
+        const friendID = friendIDInput.value.trim();
+        
+        // Validar que se haya ingresado un ID
+        if (!friendID) {
+            showNotification("Ingresa el ID del usuario", "warning");
             return;
         }
+        
+        // Validar formato del ID
+        if (!userIDSystem.isValidUserID(friendID)) {
+            showNotification("El formato del ID no es válido. Debe comenzar con SCRAKK-", "warning");
+            return;
+        }
+        
+        // Mostrar estado de carga
+        showNotification("Buscando usuario...", "info");
+        
+        // Verificar si el usuario existe
+        const user = await userIDSystem.findUserByID(friendID);
+        
+        if (!user) {
+            console.log("No se encontró usuario con ID:", friendID);
+            showNotification("No se encontró ningún usuario con ese ID", "error");
+            return;
+        }
+        
+        // Verificar que no sea el mismo usuario
+        const { data: { user: currentUser } } = await supabaseClient.auth.getUser();
+        
+        if (user.id === currentUser.id) {
+            showNotification("No puedes enviarte una solicitud a ti mismo", "warning");
+            return;
+        }
+        
+        console.log(`Usuario encontrado: ${user.id}, verificando si ya son amigos...`);
         
         // Verificar si ya son amigos
         const { data: existingFriendship, error: friendshipError } = await supabaseClient
             .from('friendships')
             .select('id')
-            .or(`user1_id.eq.${currentUser.id},user2_id.eq.${currentUser.id}`)
-            .or(`user1_id.eq.${targetUser.id},user2_id.eq.${targetUser.id}`)
-            .single();
+            .or(`and(user1_id.eq.${currentUser.id},user2_id.eq.${user.id}),and(user1_id.eq.${user.id},user2_id.eq.${currentUser.id})`)
+            .maybeSingle();
+        
+        if (friendshipError) {
+            console.error("Error al verificar amistad:", friendshipError);
+            showNotification("Error al verificar si ya son amigos", "error");
+            return;
+        }
         
         if (existingFriendship) {
-            if (addFriendError) addFriendError.textContent = 'Ya son amigos';
+            showNotification("Ya son amigos", "info");
             return;
         }
         
-        // Verificar si ya existe una solicitud pendiente
-        const { data: existingRequest, error: requestError } = await supabaseClient
+        // Verificar si ya existe una solicitud pendiente del usuario actual
+        const { data: existingSentRequest, error: sentRequestError } = await supabaseClient
             .from('friend_requests')
             .select('id, status')
-            .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${targetUser.id}`)
-            .or(`sender_id.eq.${targetUser.id},receiver_id.eq.${currentUser.id}`)
-            .eq('status', 'pending')
-            .single();
+            .eq('sender_id', currentUser.id)
+            .eq('receiver_id', user.id)
+            .maybeSingle();
         
-        if (existingRequest) {
-            if (addFriendError) addFriendError.textContent = 'Ya existe una solicitud pendiente';
+        if (sentRequestError) {
+            console.error("Error al verificar solicitud enviada:", sentRequestError);
+            showNotification("Error al verificar solicitudes enviadas", "error");
             return;
         }
         
-        // Enviar solicitud
-        const { error: insertError } = await supabaseClient
+        // Si ya existe una solicitud pendiente, no enviar otra
+        if (existingSentRequest) {
+            if (existingSentRequest.status === 'pending') {
+                showNotification("Ya enviaste una solicitud a este usuario", "info");
+                return;
+            } else if (existingSentRequest.status === 'rejected') {
+                showNotification("Este usuario rechazó tu solicitud anteriormente", "warning");
+                return;
+            }
+        }
+        
+        // Verificar solicitudes recibidas
+        const { data: existingReceivedRequest, error: receivedRequestError } = await supabaseClient
+            .from('friend_requests')
+            .select('id, status')
+            .eq('sender_id', user.id)
+            .eq('receiver_id', currentUser.id)
+            .maybeSingle();
+            
+        if (receivedRequestError) {
+            console.error("Error al verificar solicitud recibida:", receivedRequestError);
+        } else if (existingReceivedRequest) {
+            if (existingReceivedRequest.status === 'pending') {
+                // Si hay una solicitud pendiente del otro usuario, aceptarla automáticamente
+                showNotification("Este usuario ya te envió una solicitud. Aceptando automáticamente.", "success");
+                
+                // Aceptar solicitud
+                await acceptFriendRequest(
+                    existingReceivedRequest.id, 
+                    user.id, 
+                    friendID  // Este es el user_id personalizado
+                );
+                
+                return;
+            }
+        }
+        
+        // Obtener nuestro ID personalizado
+        const senderUserID = await userIDSystem.ensureUserHasID(currentUser.id);
+        
+        // Todo está bien, enviar solicitud
+        showNotification("Enviando solicitud...", "info");
+        
+        // Registrar la solicitud en la base de datos
+        const { data: newRequest, error: requestError } = await supabaseClient
             .from('friend_requests')
             .insert([
                 {
                     sender_id: currentUser.id,
-                    receiver_id: targetUser.id,
-                    status: 'pending'
+                    receiver_id: user.id,
+                    sender_user_id: senderUserID,
+                    receiver_user_id: friendID,
+                    status: 'pending',
+                    message: 'Hola, me gustaría añadirte como amigo'
                 }
-            ]);
+            ])
+            .select();
         
-        if (insertError) {
-            console.error('Error al enviar solicitud:', insertError);
-            if (addFriendError) addFriendError.textContent = 'Error al enviar solicitud';
+        if (requestError) {
+            console.error("Error al enviar solicitud:", requestError);
+            showNotification("Error al enviar la solicitud", "error");
             return;
         }
         
-        // Éxito
-        if (addFriendSuccess) addFriendSuccess.textContent = `Solicitud enviada a ${targetUser.full_name || username}`;
-        if (addFriendInput) addFriendInput.value = '';
-        showNotification('Solicitud de amistad enviada', 'success');
+        console.log("Solicitud enviada exitosamente:", newRequest);
+        
+        // Limpiar campo
+        friendIDInput.value = '';
+        
+        // Mensaje de éxito
+        showNotification("Solicitud enviada exitosamente", "success");
         
     } catch (error) {
-        console.error('Error al enviar solicitud de amistad:', error);
-        if (addFriendError) addFriendError.textContent = 'Error al procesar la solicitud';
+        console.error("Error al enviar solicitud de amistad:", error);
+        showNotification("Error al procesar la solicitud", "error");
     }
 }
 
@@ -658,66 +1262,155 @@ async function loadFriendRequests() {
             }
         }
         
-        // Obtener solicitudes pendientes
+        // Obtener solicitudes pendientes donde este usuario es el receptor
         const { data: requests, error: requestsError } = await supabaseClient
             .from('friend_requests')
-            .select('id, sender_id, sender_user_id, created_at')
+            .select('id, sender_id, sender_user_id, status, created_at, message')
             .eq('receiver_id', window.currentUser.id)
-            .eq('status', 'pending');
-            
+            .eq('status', 'pending')
+            .order('created_at', { ascending: false });
+        
         if (requestsError) {
-            console.error('Error al cargar solicitudes:', requestsError);
+            console.error("Error al cargar solicitudes de amistad:", requestsError);
+            const pendingTab = document.getElementById('pendingTab');
+            if (pendingTab) {
+                if (pendingTab.querySelector('.pending-count')) {
+                    pendingTab.querySelector('.pending-count').remove();
+                }
+            }
+            
+            // Si hay un elemento friendList, mostrar el error
+            const friendList = document.getElementById('friendList');
+            if (friendList) {
+                friendList.innerHTML = `<p class="placeholder-text">Error al cargar solicitudes: ${requestsError.message || 'Error desconocido'}</p>`;
+            }
+            
+            showNotification('Error al cargar solicitudes de amistad', 'error');
             return;
         }
         
-        console.log("Solicitudes pendientes recibidas:", requests);
+        console.log("Solicitudes pendientes encontradas:", requests?.length || 0);
         
-        // Guardar localmente las solicitudes para compararlas después
-        const previousRequests = window.currentFriendRequests || [];
-        const newRequestsCount = requests ? requests.filter(req => 
-            !previousRequests.some(prevReq => prevReq.id === req.id)
-        ).length : 0;
+        // Obtener el contenedor donde se muestran las solicitudes
+        const friendList = document.getElementById('friendList');
         
-        // Actualizar contador si tab de pendientes está activo
-        const pendingTab = document.querySelector('.friend-tab[data-filter="pending"]');
+        // Asegurarnos de que estamos en la tab correcta
+        const pendingTab = document.getElementById('pendingTab');
         if (pendingTab) {
-            const requestCount = requests ? requests.length : 0;
-            const pendingBadge = pendingTab.querySelector('.pending-badge') || document.createElement('span');
+            // Actualizar indicador de solicitudes pendientes
+            updateFriendsNavIndicator(requests?.length || 0);
             
-            if (!pendingTab.querySelector('.pending-badge')) {
-                pendingBadge.className = 'pending-badge';
-                pendingTab.appendChild(pendingBadge);
-            }
-            
-            pendingBadge.textContent = requestCount;
-            pendingBadge.style.display = requestCount > 0 ? 'inline-flex' : 'none';
-            
-            // Solo mostrar notificación si hay solicitudes nuevas
-            if (newRequestsCount > 0) {
-                showNotification(`Tienes ${newRequestsCount} nueva(s) solicitud(es) de amistad`, 'info');
+            // Si hay solicitudes, mostrarlas
+            if (requests && requests.length > 0) {
+                // Si hay un contador en el tab, actualizarlo
+                let countBadge = pendingTab.querySelector('.pending-count');
+                if (!countBadge) {
+                    countBadge = document.createElement('span');
+                    countBadge.className = 'pending-count';
+                    pendingTab.appendChild(countBadge);
+                }
+                countBadge.textContent = requests.length;
+                
+                // Mostrar notificaciones si es necesario
+                if (!window.initialRequestsLoaded) {
+                    window.initialRequestsLoaded = true;
+                    showFriendRequestNotifications(requests);
+                }
+                
+                // Si friendList existe y estamos en la pestaña correcta, mostrar las solicitudes
+                if (friendList && document.querySelector('.friend-tab.active')?.id === 'pendingTab') {
+                    console.log("Mostrando solicitudes en el DOM");
+                    await displayPendingRequests(requests);
+                }
+            } else {
+                // Si no hay solicitudes, eliminar el contador si existe
+                const countBadge = pendingTab.querySelector('.pending-count');
+                if (countBadge) {
+                    countBadge.remove();
+                }
+                
+                // Si friendList existe y estamos en la pestaña correcta, mostrar mensaje vacío
+                if (friendList && document.querySelector('.friend-tab.active')?.id === 'pendingTab') {
+                    friendList.innerHTML = '<p class="placeholder-text">No tienes solicitudes pendientes</p>';
+                }
             }
         }
         
-        // Actualizar solicitudes almacenadas
-        window.currentFriendRequests = requests || [];
-        
-        // Si tab de pendientes está activo, mostrar solicitudes
-        const activeTabFilter = document.querySelector('.friend-tab.active')?.dataset.filter;
-        if (activeTabFilter === 'pending') {
-            displayPendingRequests(requests || []);
-        }
-        
+        return requests;
     } catch (error) {
-        console.error("Error al cargar solicitudes de amistad:", error);
+        console.error("Error inesperado al cargar solicitudes:", error);
+        
+        // Mostrar error en la interfaz
+        const friendList = document.getElementById('friendList');
+        if (friendList) {
+            friendList.innerHTML = `<p class="placeholder-text">Error inesperado: ${error.message || 'Error desconocido'}</p>`;
+        }
+        
+        // Notificar al usuario
+        showNotification('Error al cargar solicitudes de amistad', 'error');
+    }
+}
+
+// Mostrar notificaciones para nuevas solicitudes de amistad
+async function showFriendRequestNotifications(newRequests) {
+    if (!newRequests || newRequests.length === 0) return;
+    
+    // Notificar sobre cada solicitud recibida
+    for (const request of newRequests) {
+        try {
+            // Obtener información del usuario que envía la solicitud
+            const { data: senderData, error: senderError } = await supabase
+                .from('profiles')
+                .select('username, avatar_url')
+                .eq('id', request.sender_id)
+                .single();
+                
+            if (senderError) throw senderError;
+            
+            const username = senderData?.username || 'Usuario';
+            const avatarUrl = senderData?.avatar_url || 'https://i.ibb.co/ZRXTrM6w/ic-launcher.png';
+            
+            // Mostrar notificación flotante con la nueva solicitud
+            showFloatingNotification(
+                'Nueva solicitud de amistad',
+                `${username} quiere ser tu amigo`,
+                avatarUrl,
+                'Ver solicitudes',
+                () => {
+                    loadSectionContent('friends');
+                    setTimeout(() => {
+                        document.getElementById('friendRequestsTab')?.click();
+                    }, 100);
+                }
+            );
+            
+            // Notificación estándar
+            showNotification('friend', `Nueva solicitud de amistad de ${username}`, 5000);
+            
+            // Reproducir sonido
+            if (window.notifications) {
+                window.notifications.playSound('friendRequest');
+            }
+            
+            // Actualizar indicador en la barra lateral
+            updateFriendsNavIndicator(newRequests.length);
+            
+        } catch (error) {
+            console.error('Error al mostrar notificación de solicitud:', error);
+        }
     }
 }
 
 // Mostrar solicitudes pendientes
 async function displayPendingRequests(requests) {
+    console.log("Mostrando solicitudes pendientes:", requests);
     const friendList = document.getElementById('friendList');
     const friendCount = document.getElementById('friendCount');
     
-    if (!friendList) return;
+    if (!friendList) {
+        console.error("No se encontró el elemento friendList");
+        return;
+    }
     
     if (!requests || requests.length === 0) {
         friendList.innerHTML = '<p class="placeholder-text">No tienes solicitudes pendientes</p>';
@@ -728,90 +1421,143 @@ async function displayPendingRequests(requests) {
     // Actualizar contador
     if (friendCount) friendCount.textContent = requests.length.toString();
     
-    // Obtener perfiles de los remitentes
-    const senderIds = requests.map(req => req.sender_id);
-    const { data: senderProfiles, error: profilesError } = await supabaseClient
-        .from('profiles')
-        .select('id, username, full_name, avatar_url, bio, status')
-        .in('id', senderIds);
-    
-    if (profilesError) {
-        console.error('Error al cargar perfiles de remitentes:', profilesError);
-        friendList.innerHTML = '<p class="placeholder-text">Error al cargar solicitudes</p>';
-        return;
-    }
-    
-    // Crear mapa de perfiles para acceso rápido
-    const profilesMap = {};
-    senderProfiles.forEach(profile => {
-        profilesMap[profile.id] = profile;
-    });
-    
-    // Renderizar solicitudes
-    let requestsHTML = '';
-    requests.forEach(request => {
-        const sender = profilesMap[request.sender_id] || { username: 'Usuario desconocido' };
-        const requestDate = new Date(request.created_at).toLocaleDateString();
-        const requestTime = new Date(request.created_at).toLocaleTimeString();
-        const senderUserID = request.sender_user_id || 'ID no disponible';
-        const statusText = getStatusText(sender.status);
+    try {
+        // Obtener perfiles de los remitentes
+        const senderIds = requests.map(req => req.sender_id);
+        console.log("IDs de remitentes a buscar:", senderIds);
         
-        requestsHTML += `
-            <div class="friend-request-item" data-request-id="${request.id}">
-                <div class="friend-avatar">
-                    <img src="${sender.avatar_url || 'img/default-avatar.png'}" alt="${sender.full_name || sender.username}">
-                </div>
-                <div class="friend-request-info">
-                    <div class="friend-name">${sender.full_name || sender.username}</div>
-                    <div class="friend-user-id">ID: <span class="user-id-display">${senderUserID}</span></div>
-                    <div class="friend-status-text">
-                        ${sender.bio ? `<div class="friend-bio">"${sender.bio.substring(0, 50)}${sender.bio.length > 50 ? '...' : ''}"</div>` : ''}
-                        <div>Solicitud recibida el ${requestDate} a las ${requestTime}</div>
+        if (senderIds.length === 0) {
+            friendList.innerHTML = '<p class="placeholder-text">Error: No se pudieron obtener los IDs de los remitentes</p>';
+            return;
+        }
+        
+        const { data: senderProfiles, error: profilesError } = await supabaseClient
+            .from('profiles')
+            .select('id, username, full_name, avatar_url, bio, status')
+            .in('id', senderIds);
+        
+        if (profilesError) {
+            console.error('Error al cargar perfiles de remitentes:', profilesError);
+            friendList.innerHTML = `<p class="placeholder-text">Error al cargar perfiles: ${profilesError.message || 'Error desconocido'}</p>`;
+            return;
+        }
+        
+        if (!senderProfiles || senderProfiles.length === 0) {
+            console.warn("No se encontraron perfiles para los remitentes:", senderIds);
+            // Mostrar solicitudes sin información de perfil
+            let simpleRequestsHTML = '';
+            requests.forEach(request => {
+                simpleRequestsHTML += `
+                    <div class="friend-request-item" data-request-id="${request.id}">
+                        <div class="friend-avatar">
+                            <img src="img/default-avatar.png" alt="Usuario">
+                        </div>
+                        <div class="friend-request-info">
+                            <div class="friend-name">Usuario (ID: ${request.sender_id})</div>
+                            <div class="friend-user-id">ID: <span class="user-id-display">${request.sender_user_id || 'No disponible'}</span></div>
+                            <div class="friend-status-text">
+                                <div>Solicitud recibida el ${new Date(request.created_at).toLocaleDateString()}</div>
+                            </div>
+                        </div>
+                        <div class="friend-request-actions">
+                            <button class="friend-action-btn accept-btn" title="Aceptar solicitud" data-request-id="${request.id}" data-sender-id="${request.sender_id}" data-sender-user-id="${request.sender_user_id || ''}">
+                                <i class="fas fa-check"></i>
+                            </button>
+                            <button class="friend-action-btn reject-btn" title="Rechazar solicitud" data-request-id="${request.id}">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            friendList.innerHTML = simpleRequestsHTML;
+            setupRequestButtons();
+            return;
+        }
+        
+        console.log("Perfiles de remitentes obtenidos:", senderProfiles);
+        
+        // Crear mapa de perfiles para acceso rápido
+        const profilesMap = {};
+        senderProfiles.forEach(profile => {
+            profilesMap[profile.id] = profile;
+        });
+        
+        // Renderizar solicitudes
+        let requestsHTML = '';
+        requests.forEach(request => {
+            const sender = profilesMap[request.sender_id] || { username: 'Usuario desconocido' };
+            const requestDate = new Date(request.created_at).toLocaleDateString();
+            const requestTime = new Date(request.created_at).toLocaleTimeString();
+            const senderUserID = request.sender_user_id || 'ID no disponible';
+            const statusText = getStatusText(sender.status);
+            
+            requestsHTML += `
+                <div class="friend-request-item" data-request-id="${request.id}">
+                    <div class="friend-avatar">
+                        <img src="${sender.avatar_url || 'img/default-avatar.png'}" alt="${sender.full_name || sender.username || 'Usuario'}">
+                    </div>
+                    <div class="friend-request-info">
+                        <div class="friend-name">${sender.full_name || sender.username || 'Usuario'}</div>
+                        <div class="friend-user-id">ID: <span class="user-id-display">${senderUserID}</span></div>
+                        <div class="friend-status-text">
+                            ${sender.bio ? `<div class="friend-bio">"${sender.bio.substring(0, 50)}${sender.bio.length > 50 ? '...' : ''}"</div>` : ''}
+                            <div>Solicitud recibida el ${requestDate} a las ${requestTime}</div>
+                        </div>
+                    </div>
+                    <div class="friend-request-actions">
+                        <button class="friend-action-btn accept-btn" title="Aceptar solicitud" data-request-id="${request.id}" data-sender-id="${request.sender_id}" data-sender-user-id="${senderUserID}">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        <button class="friend-action-btn reject-btn" title="Rechazar solicitud" data-request-id="${request.id}">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
                 </div>
-                <div class="friend-request-actions">
-                    <button class="friend-action-btn accept-btn" title="Aceptar solicitud" data-request-id="${request.id}" data-sender-id="${request.sender_id}" data-sender-user-id="${senderUserID}">
-                        <i class="fas fa-check"></i>
-                    </button>
-                    <button class="friend-action-btn reject-btn" title="Rechazar solicitud" data-request-id="${request.id}">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-    });
-    
-    friendList.innerHTML = requestsHTML;
-    
-    // Añadir listeners a los botones
-    const acceptButtons = document.querySelectorAll('.accept-btn');
-    const rejectButtons = document.querySelectorAll('.reject-btn');
-    
-    acceptButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const requestId = btn.dataset.requestId;
-            const senderId = btn.dataset.senderId;
-            const senderUserID = btn.dataset.senderUserId;
-            
-            // Mostrar mensaje de carga
-            showNotification('Aceptando solicitud...', 'info');
-            
-            // Ejecutar la acción
-            acceptFriendRequest(requestId, senderId, senderUserID);
+            `;
         });
-    });
+        
+        friendList.innerHTML = requestsHTML;
+        setupRequestButtons();
+        
+    } catch (error) {
+        console.error("Error al mostrar solicitudes pendientes:", error);
+        friendList.innerHTML = `<p class="placeholder-text">Error inesperado: ${error.message || 'Error desconocido'}</p>`;
+    }
     
-    rejectButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const requestId = btn.dataset.requestId;
-            
-            // Mostrar mensaje de carga
-            showNotification('Rechazando solicitud...', 'info');
-            
-            // Ejecutar la acción
-            rejectFriendRequest(requestId);
+    // Función interna para configurar los botones de solicitud
+    function setupRequestButtons() {
+        // Añadir listeners a los botones
+        const acceptButtons = document.querySelectorAll('.accept-btn');
+        const rejectButtons = document.querySelectorAll('.reject-btn');
+        
+        acceptButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const requestId = btn.dataset.requestId;
+                const senderId = btn.dataset.senderId;
+                const senderUserID = btn.dataset.senderUserId;
+                
+                // Mostrar mensaje de carga
+                showNotification('Aceptando solicitud...', 'info');
+                
+                // Ejecutar la acción
+                acceptFriendRequest(requestId, senderId, senderUserID);
+            });
         });
-    });
+        
+        rejectButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const requestId = btn.dataset.requestId;
+                
+                // Mostrar mensaje de carga
+                showNotification('Rechazando solicitud...', 'info');
+                
+                // Ejecutar la acción
+                rejectFriendRequest(requestId);
+            });
+        });
+    }
 }
 
 // Aceptar solicitud de amistad
@@ -1218,5 +1964,28 @@ function getStatusText(status) {
         case 'dnd': return 'No molestar';
         case 'offline': return 'Desconectado';
         default: return 'Desconectado';
+    }
+}
+
+// Actualizar indicador en la navegación principal
+function updateFriendsNavIndicator(count) {
+    const friendsNavItem = document.querySelector('.nav-item[data-section="friends"]');
+    
+    if (!friendsNavItem) return;
+    
+    // Buscar o crear indicador
+    let countIndicator = friendsNavItem.querySelector('.pending-count');
+    
+    if (count > 0) {
+        if (!countIndicator) {
+            countIndicator = document.createElement('span');
+            countIndicator.className = 'pending-count';
+            friendsNavItem.appendChild(countIndicator);
+        }
+        
+        countIndicator.textContent = count;
+        countIndicator.style.display = 'flex';
+    } else if (countIndicator) {
+        countIndicator.style.display = 'none';
     }
 }

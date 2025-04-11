@@ -57,6 +57,11 @@
                     <i class="fas fa-user-plus nav-icon"></i>
                     <span class="nav-text">Amigos</span>
                 </button>
+                <button class="nav-item" data-section="notifications" title="Notificaciones">
+                    <i class="fas fa-bell nav-icon"></i>
+                    <span class="nav-text">Notificaciones</span>
+                    <span class="notification-count" id="notificationCountBadge"></span>
+                </button>
             </nav>
 
             <!-- Separador -->
@@ -199,16 +204,108 @@
          <i id="notificationIcon" class="fas fa-info-circle"></i> 
         <span id="notificationMessage"></span>
     </div>
+    
+    <!-- Notificación flotante para alertas importantes -->
+    <div id="floatingNotification" class="floating-notification"></div>
+    
+    <!-- Sistema de sonidos para notificaciones -->
+    <audio id="notificationSound" preload="none"></audio>
 
-    <!-- JS Sistema de IDs de Usuario -->
+    <!-- Scripts JS en orden CORRECTO de dependencias -->
+    <!-- Primero Supabase y sus inicializaciones -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Inicializar Supabase directamente en el HTML para evitar errores de timing
+        console.log('Inicializando Supabase...');
+        const SUPABASE_URL = 'https://gdqvmyorocsqzaoswdrk.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdkcXZteW9yb2NzcXphb3N3ZHJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDExODE0MzgsImV4cCI6MjAxNjc1NzQzOH0.uW5pV-g7Qp_PbbltS7ZCrU9L3JteaZQoLjS0EN_8kEI';
+        
+        // Crear cliente
+        window.supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            realtime: {
+                params: {
+                    eventsPerSecond: 10
+                }
+            }
+        });
+        
+        console.log('Supabase inicializado correctamente');
+    </script>
+    
+    <!-- Luego los sistemas base -->
+    <script src="js/db-setup.js"></script>
+    <script src="js/notifications.js"></script>
     <script src="js/userIDs.js"></script>
-    <!-- JS Nuevo Dashboard -->
-    <script src="js/new-dashboard.js"></script>
-    <!-- JS Perfil con IDs -->
+    
+    <!-- Después los sistemas que dependen de los anteriores -->
     <script src="js/profile-id.js"></script>
-    <!-- JS Sistema de Amigos -->
+    <script src="js/notifications-center.js"></script>
     <script src="js/friends.js"></script>
-        <!-- Modal de Ajustes de Usuario -->
+    
+    <!-- Finalmente la UI principal -->
+    <script src="js/new-dashboard.js"></script>
+    
+    <script>
+        // Inicializar sistema de notificaciones
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOMContentLoaded: Inicializando interfaz...');
+            
+            // Verificar si hay notificaciones pendientes
+            if (localStorage.getItem('pendingNotifications')) {
+                try {
+                    const pendingNotifications = JSON.parse(localStorage.getItem('pendingNotifications'));
+                    if (Array.isArray(pendingNotifications) && pendingNotifications.length > 0) {
+                        // Mostrar notificaciones pendientes con un pequeño retraso
+                        setTimeout(() => {
+                            pendingNotifications.forEach(notification => {
+                                if (typeof showNotification === 'function') {
+                                    showNotification(notification.message, notification.type, notification.duration);
+                                }
+                            });
+                            // Limpiar notificaciones pendientes
+                            localStorage.removeItem('pendingNotifications');
+                        }, 1500);
+                    }
+                } catch (e) {
+                    console.error('Error al procesar notificaciones pendientes:', e);
+                    localStorage.removeItem('pendingNotifications');
+                }
+            }
+            
+            // Inicializar navegación
+            const activeTab = document.querySelector('.nav-item.active');
+            if (activeTab) {
+                const section = activeTab.dataset.section;
+                if (section && typeof loadSectionContent === 'function') {
+                    loadSectionContent(section);
+                }
+            }
+            
+            // Configurar eventos de clic en ítems de navegación
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const section = this.dataset.section;
+                    if (section && typeof handleNavigation === 'function') {
+                        handleNavigation(section);
+                    }
+                });
+            });
+            
+            // Inicializar NotificationsCenter si está disponible
+            setTimeout(() => {
+                if (typeof NotificationsCenter === 'function' && !window.notificationsCenter) {
+                    window.notificationsCenter = new NotificationsCenter();
+                    window.notificationsCenter.init().then(success => {
+                        if (success) {
+                            console.log('Centro de notificaciones inicializado');
+                        }
+                    });
+                }
+            }, 1000);
+        });
+    </script>
+
+    <!-- Modal de Ajustes de Usuario -->
     <div id="settingsModal" class="modal">
             <div class="modal-content settings-modal-content"> <!-- Ancho mayor para ajustes -->
                 <button class="close-modal" onclick="closeModal('settingsModal')" title="Cerrar">&times;</button>
@@ -331,10 +428,5 @@
              <i id="notificationIcon" class="fas fa-info-circle"></i>
         <span id="notificationMessage"></span>
     </div>
-
-    <!-- Scripts JS -->
-    <script src="js/supabase-init.js"></script>
-    <script src="js/friends.js"></script>
-    <script src="js/new-dashboard.js"></script>
 </body>
 </html>
