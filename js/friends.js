@@ -7,6 +7,7 @@ if (typeof window.currentFriendsList === 'undefined') window.currentFriendsList 
 if (typeof window.currentFriendRequests === 'undefined') window.currentFriendRequests = [];
 if (typeof window.currentChats === 'undefined') window.currentChats = {};
 if (typeof window.activeChatId === 'undefined') window.activeChatId = null;
+if (typeof window.friendsSystemInitialized === 'undefined') window.friendsSystemInitialized = false;
 
 // NO crear alias locales, usar directamente window.X para evitar redeclaraciones
 // Estas líneas causaban el error 'Identifier has already been declared'
@@ -14,6 +15,12 @@ if (typeof window.activeChatId === 'undefined') window.activeChatId = null;
 // Inicialización del sistema de amigos
 async function initFriendsSystem() {
     console.log("Inicializando sistema de amigos...");
+    
+    // Si ya está inicializado, no hacerlo de nuevo
+    if (window.friendsSystemInitialized) {
+        console.log("Sistema de amigos ya inicializado");
+        return;
+    }
     
     try {
         // Obtener el usuario actual
@@ -43,6 +50,8 @@ async function initFriendsSystem() {
         // Suscribirse a cambios en tiempo real
         setupRealtimeSubscriptions();
         
+        // Marcar como inicializado
+        window.friendsSystemInitialized = true;
         console.log("Sistema de amigos inicializado correctamente");
     } catch (error) {
         console.error("Error inesperado al inicializar sistema de amigos:", error);
@@ -98,7 +107,9 @@ function setupRealtimeSubscriptions() {
                 }
             }
         )
-        .subscribe();
+        .subscribe((status) => {
+            console.log(`Suscripción a solicitudes de amistad: ${status}`);
+        });
     
     // Suscribirse a mensajes nuevos
     const messagesSubscription = supabaseClient
@@ -116,11 +127,13 @@ function setupRealtimeSubscriptions() {
                 }
             }
         )
-        .subscribe();
+        .subscribe((status) => {
+            console.log(`Suscripción a mensajes: ${status}`);
+        });
 }
 
 // Cargar la sección de amigos
-function loadFriendsSection() {
+async function loadFriendsSection() {
     const contentTitle = document.getElementById('contentTitle');
     const mainContentArea = document.getElementById('mainContentArea');
     
@@ -162,14 +175,19 @@ function loadFriendsSection() {
             </div>
         `;
         
+        // Asegurarse de que el sistema de amigos está inicializado antes de continuar
+        if (!window.friendsSystemInitialized) {
+            await initFriendsSystem();
+        }
+        
         // Configurar listeners
         setupFriendsListeners();
         
         // Cargar amigos
-        loadFriendsList('online');
+        await loadFriendsList('online');
         
         // Cargar solicitudes pendientes
-        loadFriendRequests();
+        await loadFriendRequests();
     }
 }
 
@@ -236,8 +254,21 @@ function setupFriendsListeners() {
                     return;
                 }
                 
-                // Buscar usuario por ID
-                const foundUser = await userIDSystem.findUserByID(userID);
+                // Buscar usuario por ID usando una consulta directa más fiable
+                const { data: profiles, error: profileError } = await supabaseClient
+                    .from('profiles')
+                    .select('id, username, full_name, user_id')
+                    .eq('user_id', userID)
+                    .limit(1);
+                    
+                if (profileError) {
+                    console.error('Error al buscar usuario:', profileError);
+                    errorElement.textContent = 'Error al buscar usuario';
+                    successElement.textContent = '';
+                    return;
+                }
+                
+                const foundUser = profiles && profiles.length > 0 ? profiles[0] : null;
                 
                 console.log('Usuario encontrado:', foundUser);
                 
@@ -305,7 +336,8 @@ function setupFriendsListeners() {
                         receiver_user_id: userID,
                         status: 'pending',
                         created_at: new Date().toISOString()
-                    }]);
+                    }])
+                    .select();
                 
                 if (insertError) {
                     console.error('Error al insertar solicitud:', insertError);
@@ -318,8 +350,13 @@ function setupFriendsListeners() {
                 successElement.textContent = `Solicitud enviada a ${foundUser.full_name || foundUser.username || 'Usuario'}`;
                 addFriendInput.value = '';
                 
+                // Mostrar notificación
+                showNotification(`Solicitud enviada a ${foundUser.full_name || foundUser.username || 'Usuario'}`, 'success');
+                
                 // Actualizar lista de solicitudes pendientes
                 loadFriendRequests();
+                
+                console.log('Solicitud enviada exitosamente:', newRequest);
                 
             } catch (error) {
                 console.error('Error al enviar solicitud:', error);
@@ -448,21 +485,42 @@ async function sendFriendRequest() {
 
 // Cargar lista de amigos según el filtro
 async function loadFriendsList(filter = 'online') {
-    const friendList = document.getElementById('friendList');
-    const friendListTitle = document.getElementById('friendListTitle');
-    const friendCount = document.getElementById('friendCount');
-    
-    if (!friendList) return;
-    
-    // Mostrar cargando
-    friendList.innerHTML = '<p class="placeholder-text">Cargando amigos...</p>';
+    console.log(`Cargando lista de amigos (filtro: ${filter})...`);
     
     try {
-        // Verificar que haya un usuario autenticado
-        if (!window.currentUser || !window.currentUser.id) {
-            console.warn("No hay usuario autenticado para cargar lista de amigos");
-            friendList.innerHTML = '<p class="placeholder-text">Inicia sesión para ver tus amigos</p>';
-            return;
+        // Verificar autenticación primero
+        if (!window.currentUser) {
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            
+            if (!user) {
+                console.log("No hay usuario autenticado para cargar lista de amigos");
+                const friendList = document.getElementById('friendList');
+                if (friendList) {
+                    friendList.innerHTML = `<p class="placeholder-text">Inicia sesión para ver tus amigos</p>`;
+                }
+                return;
+            }
+            
+            window.currentUser = user;
+            
+            // También necesitamos asegurarnos de tener el ID personalizado
+            if (!window.currentUserID) {
+                window.currentUserID = await userIDSystem.ensureUserHasID(user.id);
+            }
+        }
+        
+        // Actualizar el título según el filtro
+        const friendListTitle = document.getElementById('friendListTitle');
+        if (friendListTitle) {
+            let title = '';
+            switch (filter) {
+                case 'online': title = 'En línea'; break;
+                case 'all': title = 'Todos'; break;
+                case 'pending': title = 'Pendientes'; break;
+                case 'blocked': title = 'Bloqueados'; break;
+                default: title = 'Amigos';
+            }
+            friendListTitle.innerHTML = `${title} — <span id="friendCount">0</span>`;
         }
         
         // Obtener lista de amigos
@@ -473,13 +531,18 @@ async function loadFriendsList(filter = 'online') {
         
         if (friendshipsError) {
             console.error('Error al cargar amistades:', friendshipsError);
-            friendList.innerHTML = '<p class="placeholder-text">Error al cargar amigos</p>';
+            const friendList = document.getElementById('friendList');
+            if (friendList) {
+                friendList.innerHTML = '<p class="placeholder-text">Error al cargar amigos</p>';
+            }
             return;
         }
         
         if (!friendships || friendships.length === 0) {
-            friendList.innerHTML = '<p class="placeholder-text">No tienes amigos aún</p>';
-            if (friendCount) friendCount.textContent = '0';
+            const friendList = document.getElementById('friendList');
+            if (friendList) {
+                friendList.innerHTML = '<p class="placeholder-text">No tienes amigos aún</p>';
+            }
             return;
         }
         
@@ -496,7 +559,10 @@ async function loadFriendsList(filter = 'online') {
         
         if (profilesError) {
             console.error('Error al cargar perfiles de amigos:', profilesError);
-            friendList.innerHTML = '<p class="placeholder-text">Error al cargar perfiles</p>';
+            const friendList = document.getElementById('friendList');
+            if (friendList) {
+                friendList.innerHTML = '<p class="placeholder-text">Error al cargar perfiles</p>';
+            }
             return;
         }
         
@@ -507,14 +573,9 @@ async function loadFriendsList(filter = 'online') {
         }
         
         // Actualizar contador
-        if (friendCount) friendCount.textContent = filteredFriends.length.toString();
-        
-        // Actualizar título
-        if (friendListTitle) {
-            const filterText = filter === 'online' ? 'En línea' : 
-                             filter === 'all' ? 'Todos' : 
-                             filter === 'pending' ? 'Pendientes' : 'Bloqueados';
-            friendListTitle.textContent = `${filterText} — `;
+        const friendCount = document.getElementById('friendCount');
+        if (friendCount) {
+            friendCount.textContent = filteredFriends.length.toString();
         }
         
         // Guardar lista actual
@@ -522,7 +583,10 @@ async function loadFriendsList(filter = 'online') {
         
         // Si no hay amigos después del filtro
         if (filteredFriends.length === 0) {
-            friendList.innerHTML = `<p class="placeholder-text">No tienes amigos ${filter === 'online' ? 'en línea' : ''}</p>`;
+            const friendList = document.getElementById('friendList');
+            if (friendList) {
+                friendList.innerHTML = `<p class="placeholder-text">No tienes amigos ${filter === 'online' ? 'en línea' : ''}</p>`;
+            }
             return;
         }
         
@@ -548,7 +612,10 @@ async function loadFriendsList(filter = 'online') {
             `;
         });
         
-        friendList.innerHTML = friendsHTML;
+        const friendList = document.getElementById('friendList');
+        if (friendList) {
+            friendList.innerHTML = friendsHTML;
+        }
         
         // Añadir listeners a los botones de chat
         const chatButtons = document.querySelectorAll('.chat-btn');
@@ -561,18 +628,34 @@ async function loadFriendsList(filter = 'online') {
         });
         
     } catch (error) {
-        console.error('Error al cargar lista de amigos:', error);
-        friendList.innerHTML = '<p class="placeholder-text">Error al cargar amigos</p>';
+        console.error("Error al cargar lista de amigos:", error);
+        const friendList = document.getElementById('friendList');
+        if (friendList) {
+            friendList.innerHTML = '<p class="placeholder-text">Error al cargar amigos</p>';
+        }
     }
 }
 
 // Cargar solicitudes de amistad pendientes
 async function loadFriendRequests() {
+    console.log("Cargando solicitudes de amistad...");
+    
     try {
-        // Verificar que haya un usuario autenticado
-        if (!window.currentUser || !window.currentUser.id) {
-            console.warn("No hay usuario autenticado para cargar solicitudes de amistad");
-            return;
+        // Verificar autenticación primero
+        if (!window.currentUser) {
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            
+            if (!user) {
+                console.log("No hay usuario autenticado para cargar solicitudes de amistad");
+                return;
+            }
+            
+            window.currentUser = user;
+            
+            // También necesitamos asegurarnos de tener el ID personalizado
+            if (!window.currentUserID) {
+                window.currentUserID = await userIDSystem.ensureUserHasID(user.id);
+            }
         }
         
         // Obtener solicitudes pendientes
@@ -587,6 +670,14 @@ async function loadFriendRequests() {
             return;
         }
         
+        console.log("Solicitudes pendientes recibidas:", requests);
+        
+        // Guardar localmente las solicitudes para compararlas después
+        const previousRequests = window.currentFriendRequests || [];
+        const newRequestsCount = requests ? requests.filter(req => 
+            !previousRequests.some(prevReq => prevReq.id === req.id)
+        ).length : 0;
+        
         // Actualizar contador si tab de pendientes está activo
         const pendingTab = document.querySelector('.friend-tab[data-filter="pending"]');
         if (pendingTab) {
@@ -599,13 +690,16 @@ async function loadFriendRequests() {
             }
             
             pendingBadge.textContent = requestCount;
-            pendingBadge.style.display = requestCount > 0 ? 'block' : 'none';
+            pendingBadge.style.display = requestCount > 0 ? 'inline-flex' : 'none';
             
-            // Añadir notificación si hay solicitudes pendientes
-            if (requestCount > 0) {
-                showNotification(`Tienes ${requestCount} solicitud(es) de amistad pendiente(s)`, 'info');
+            // Solo mostrar notificación si hay solicitudes nuevas
+            if (newRequestsCount > 0) {
+                showNotification(`Tienes ${newRequestsCount} nueva(s) solicitud(es) de amistad`, 'info');
             }
         }
+        
+        // Actualizar solicitudes almacenadas
+        window.currentFriendRequests = requests || [];
         
         // Si tab de pendientes está activo, mostrar solicitudes
         const activeTabFilter = document.querySelector('.friend-tab.active')?.dataset.filter;
@@ -614,7 +708,7 @@ async function loadFriendRequests() {
         }
         
     } catch (error) {
-        console.error('Error inesperado al cargar solicitudes:', error);
+        console.error("Error al cargar solicitudes de amistad:", error);
     }
 }
 
@@ -638,7 +732,7 @@ async function displayPendingRequests(requests) {
     const senderIds = requests.map(req => req.sender_id);
     const { data: senderProfiles, error: profilesError } = await supabaseClient
         .from('profiles')
-        .select('id, username, full_name, avatar_url')
+        .select('id, username, full_name, avatar_url, bio, status')
         .in('id', senderIds);
     
     if (profilesError) {
@@ -658,7 +752,9 @@ async function displayPendingRequests(requests) {
     requests.forEach(request => {
         const sender = profilesMap[request.sender_id] || { username: 'Usuario desconocido' };
         const requestDate = new Date(request.created_at).toLocaleDateString();
+        const requestTime = new Date(request.created_at).toLocaleTimeString();
         const senderUserID = request.sender_user_id || 'ID no disponible';
+        const statusText = getStatusText(sender.status);
         
         requestsHTML += `
             <div class="friend-request-item" data-request-id="${request.id}">
@@ -668,7 +764,10 @@ async function displayPendingRequests(requests) {
                 <div class="friend-request-info">
                     <div class="friend-name">${sender.full_name || sender.username}</div>
                     <div class="friend-user-id">ID: <span class="user-id-display">${senderUserID}</span></div>
-                    <div class="friend-status-text">Solicitud recibida el ${requestDate}</div>
+                    <div class="friend-status-text">
+                        ${sender.bio ? `<div class="friend-bio">"${sender.bio.substring(0, 50)}${sender.bio.length > 50 ? '...' : ''}"</div>` : ''}
+                        <div>Solicitud recibida el ${requestDate} a las ${requestTime}</div>
+                    </div>
                 </div>
                 <div class="friend-request-actions">
                     <button class="friend-action-btn accept-btn" title="Aceptar solicitud" data-request-id="${request.id}" data-sender-id="${request.sender_id}" data-sender-user-id="${senderUserID}">
@@ -913,212 +1012,6 @@ function setupChatListeners(friendId) {
             chatInput.style.height = 'auto';
             chatInput.style.height = (chatInput.scrollHeight) + 'px';
         });
-    }
-}
-
-// Enviar mensaje al amigo
-async function sendMessage(friendId) {
-    const chatInput = document.getElementById('chatInput');
-    const content = chatInput.value.trim();
-    
-    if (!content) return; // No enviar mensajes vacíos
-    
-    try {
-        // Limpiar input antes de enviar para mejor UX
-        chatInput.value = '';
-        
-        // Añadir mensaje a la interfaz inmediatamente (optimistic UI)
-        const tempMessage = {
-            id: 'temp-' + Date.now(),
-            sender_id: currentUser.id,
-            receiver_id: friendId,
-            content: content,
-            created_at: new Date().toISOString(),
-            is_temp: true // Marcar como temporal hasta confirmación
-        };
-        
-        appendMessageToChat(tempMessage);
-        
-        // Enviar mensaje a la base de datos
-        const { data: message, error } = await supabaseClient
-            .from('messages')
-            .insert([
-                {
-                    sender_id: currentUser.id,
-                    receiver_id: friendId,
-                    content: content,
-                    read: false
-                }
-            ])
-            .select()
-            .single();
-        
-        if (error) {
-            console.error('Error al enviar mensaje:', error);
-            showNotification('Error al enviar mensaje', 'error');
-            // Marcar el mensaje como fallido en la UI
-            const tempElement = document.getElementById(`message-${tempMessage.id}`);
-            if (tempElement) {
-                tempElement.classList.add('message-failed');
-                tempElement.querySelector('.message-content').innerHTML += ' <span class="message-error">(No enviado)</span>';
-            }
-            return;
-        }
-        
-        console.log('Mensaje enviado:', message);
-        
-        // Actualizar el mensaje temporal con el real
-        const tempElement = document.getElementById(`message-${tempMessage.id}`);
-        if (tempElement && message) {
-            tempElement.id = `message-${message.id}`;
-            tempElement.classList.remove('message-temp');
-        }
-        
-    } catch (error) {
-        console.error('Error inesperado al enviar mensaje:', error);
-        showNotification('Error al enviar mensaje', 'error');
-    }
-}
-
-// Cargar mensajes del chat
-async function loadChatMessages(friendId) {
-    const chatMessages = document.getElementById('chatMessages');
-    
-    if (!chatMessages) return;
-    
-    try {
-        // Obtener mensajes de la conversación (enviados y recibidos)
-        const { data: messages, error } = await supabaseClient
-            .from('messages')
-            .select('*')
-            .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${currentUser.id})`)
-            .order('created_at', { ascending: true });
-        
-        if (error) {
-            console.error('Error al cargar mensajes:', error);
-            chatMessages.innerHTML = '<p class="placeholder-text">Error al cargar mensajes</p>';
-            return;
-        }
-        
-        // Guardar en caché
-        currentChats[friendId] = messages || [];
-        
-        // Si no hay mensajes
-        if (!messages || messages.length === 0) {
-            chatMessages.innerHTML = '<p class="placeholder-text">No hay mensajes aún. ¡Envía el primero!</p>';
-            return;
-        }
-        
-        // Renderizar mensajes
-        let messagesHTML = '';
-        messages.forEach(message => {
-            messagesHTML += createMessageHTML(message);
-        });
-        
-        chatMessages.innerHTML = messagesHTML;
-        
-        // Marcar mensajes como leídos
-        markMessagesAsRead(friendId);
-        
-        // Scroll al final con animación suave
-        setTimeout(() => {
-            chatMessages.scrollTo({
-                top: chatMessages.scrollHeight,
-                behavior: 'smooth'
-            });
-        }, 50);
-        
-    } catch (error) {
-        console.error('Error inesperado al cargar mensajes:', error);
-        chatMessages.innerHTML = '<p class="placeholder-text">Error al cargar mensajes</p>';
-    }
-}
-
-// Añadir un mensaje nuevo al chat
-function appendMessageToChat(message) {
-    const chatMessages = document.getElementById('chatMessages');
-    
-    if (!chatMessages) return;
-    
-    // Eliminar placeholder si existe
-    const placeholder = chatMessages.querySelector('.placeholder-text');
-    if (placeholder) {
-        placeholder.remove();
-    }
-    
-    // Añadir mensaje al DOM
-    const messageHTML = createMessageHTML(message);
-    chatMessages.insertAdjacentHTML('beforeend', messageHTML);
-    
-    // Scroll al final con animación suave
-    setTimeout(() => {
-        chatMessages.scrollTo({
-            top: chatMessages.scrollHeight,
-            behavior: 'smooth'
-        });
-    }, 50);
-    
-    // Si el mensaje es recibido, marcarlo como leído
-    if (message.sender_id !== currentUser.id) {
-        markMessagesAsRead(message.sender_id);
-    }
-}
-
-// Crear HTML para un mensaje
-function createMessageHTML(message) {
-    const isOwn = message.sender_id === currentUser.id;
-    const time = new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const tempClass = message.is_temp ? 'message-temp' : '';
-    
-    return `
-        <div id="message-${message.id}" class="message ${isOwn ? 'message-own' : 'message-friend'} ${tempClass}">
-            <div class="message-content">${message.content}</div>
-            <div class="message-time">${time}</div>
-        </div>
-    `;
-}
-
-// Marcar mensajes como leídos
-async function markMessagesAsRead(senderId) {
-    try {
-        const { error } = await supabaseClient
-            .from('messages')
-            .update({ read: true })
-            .eq('sender_id', senderId)
-            .eq('receiver_id', currentUser.id)
-            .eq('read', false);
-        
-        if (error) {
-            console.error('Error al marcar mensajes como leídos:', error);
-        }
-    } catch (error) {
-        console.error('Error inesperado al marcar mensajes:', error);
-    }
-}
-
-// Cerrar modal de chat
-function closeChatModal() {
-    const chatModal = document.getElementById('chatModal');
-    
-    if (chatModal) {
-        chatModal.classList.remove('show');
-        setTimeout(() => {
-            chatModal.style.display = 'none';
-        }, 300);
-    }
-    
-    // Limpiar chat activo
-    activeChatId = null;
-}
-
-// Obtener texto de estado
-function getStatusText(status) {
-    switch (status) {
-        case 'online': return 'En línea';
-        case 'idle': return 'Ausente';
-        case 'dnd': return 'No molestar';
-        case 'offline': return 'Desconectado';
-        default: return 'Desconectado';
     }
 }
 
