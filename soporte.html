@@ -4,17 +4,146 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Soporte - Scrakk</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
     <style>
+        :root {
+            --color-bg-primary: #030315;
+            --color-bg-secondary: #0c0c20;
+            --color-bg-tertiary: #151530;
+            --color-accent-primary: #7b2ff9;
+            --color-accent-secondary: #4f8cff;
+            --color-accent-tertiary: #f43f5e;
+            --color-neon-purple: #bc13fe;
+            --color-neon-blue: #4a9fff;
+            --color-neon-pink: #ff2cf6;
+            --color-neon-green: #00ff8c;
+            --color-text-primary: #ffffff;
+            --color-text-secondary: #c4c7ff;
+            --color-text-muted: #8888b2;
+            --color-border-light: rgba(163, 163, 255, 0.1);
+            --color-border-glow: rgba(123, 47, 249, 0.5);
+            --color-success: #00ffc3;
+            --color-danger: #ff5f7a;
+            --color-warning: #ffbd2f;
+            --color-info: #49c3ff;
+            --shadow-sm: 0 4px 6px rgba(0, 0, 0, 0.2);
+            --shadow-md: 0 8px 18px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 15px 40px rgba(0, 0, 0, 0.4);
+            --shadow-glow-purple: 0 0 20px rgba(123, 47, 249, 0.7);
+            --shadow-glow-blue: 0 0 20px rgba(79, 140, 255, 0.7);
+            --shadow-glow-pink: 0 0 20px rgba(244, 63, 94, 0.7);
+            --radius-sm: 6px;
+            --radius-md: 12px;
+            --radius-lg: 24px;
+            --radius-xl: 32px;
+            --radius-pill: 9999px;
+            --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-bounce: 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
             padding: 0;
             min-height: 100vh;
-            background: linear-gradient(135deg, #0f172a, #1e3a8a);
-            font-family: 'Segoe UI', sans-serif;
-            color: white;
+            background-color: var(--color-bg-primary);
+            background-image: 
+                radial-gradient(circle at 10% 10%, rgba(123, 47, 249, 0.1), transparent 30%),
+                radial-gradient(circle at 90% 30%, rgba(79, 140, 255, 0.08), transparent 40%),
+                radial-gradient(circle at 50% 80%, rgba(244, 63, 94, 0.08), transparent 40%);
+            font-family: 'Inter', sans-serif;
+            color: var(--color-text-primary);
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            position: relative;
         }
 
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><filter id="noise" x="0%" y="0%" width="100%" height="100%"><feTurbulence baseFrequency="0.7" numOctaves="3" seed="0" type="fractalNoise" result="noise"/><feColorMatrix in="noise" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.015 0"/></filter><rect width="100%" height="100%" filter="url(%23noise)"/></svg>');
+            opacity: 0.35;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Efectos de fondo */
+        .grid-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                linear-gradient(to right, rgba(123, 47, 249, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(123, 47, 249, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .horizon-lines {
+            position: fixed;
+            width: 200%;
+            height: 100%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: -1;
+            perspective: 500px;
+            transform-style: preserve-3d;
+            pointer-events: none;
+        }
+
+        .horizon-line {
+            position: absolute;
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(123, 47, 249, 0.1) 15%, 
+                rgba(123, 47, 249, 0.2) 50%, 
+                rgba(123, 47, 249, 0.1) 85%, 
+                transparent 100%);
+            transform-origin: center center;
+            animation: pulseHorizon 3s infinite ease-in-out;
+        }
+
+        @keyframes pulseHorizon {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.7; }
+        }
+
+        .particles-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        /* Navbar */
         nav {
             position: fixed;
             top: 20px;
@@ -22,16 +151,39 @@
             transform: translateX(-50%);
             width: 90%;
             max-width: 1200px;
-            padding: 1.2rem 2rem;
-            background: rgba(255, 255, 255, 0.1);
+            padding: 0.6rem 1.5rem;
+            background: rgba(12, 12, 32, 0.8);
             backdrop-filter: blur(15px);
-            border-radius: 15px;
+            border-radius: var(--radius-pill);
             display: flex;
             justify-content: space-between;
             align-items: center;
             z-index: 1000;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: var(--shadow-md), 0 0 0 1px var(--color-border-light);
+            transition: transform var(--transition-bounce), box-shadow var(--transition-normal);
+            border: 1px solid transparent;
+            border-image: linear-gradient(135deg, transparent, rgba(123, 47, 249, 0.3), transparent);
+            border-image-slice: 1;
+        }
+
+        nav::before {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            background: linear-gradient(135deg, rgba(123, 47, 249, 0), rgba(79, 140, 255, 0.2), rgba(123, 47, 249, 0));
+            border-radius: var(--radius-pill);
+            z-index: -1;
+            opacity: 0;
+            transition: opacity var(--transition-normal);
+        }
+
+        nav:hover {
+            box-shadow: var(--shadow-lg), 0 0 20px rgba(123, 47, 249, 0.3);
+            transform: translateX(-50%) translateY(-5px);
+        }
+
+        nav:hover::before {
+            opacity: 1;
         }
 
         .logo {
@@ -39,182 +191,484 @@
             align-items: center;
             gap: 12px;
             text-decoration: none;
-            transition: transform 0.3s ease;
+            transition: all var(--transition-normal);
+            position: relative;
+        }
+
+        .logo::before {
+            content: '';
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(123, 47, 249, 0.5) 0%, transparent 70%);
+            filter: blur(15px);
+            opacity: 0;
+            transition: opacity var(--transition-normal);
+        }
+
+        .logo:hover::before {
+            opacity: 1;
         }
 
         .logo-img {
-            height: 40px;
-            transition: transform 0.3s ease;
+            height: 38px;
+            transition: transform var(--transition-bounce);
+            filter: drop-shadow(0 0 8px rgba(123, 47, 249, 0.8));
+            will-change: transform;
         }
 
         .logo-text {
             font-family: 'Orbitron', sans-serif;
-            font-size: 1.8rem;
-            font-weight: 600;
-            color: #60a5fa;
+            font-size: 1.7rem;
+            font-weight: 700;
+            color: var(--color-text-primary);
             letter-spacing: 1.5px;
-            text-shadow: 0 0 15px rgba(96, 165, 250, 0.4);
+            position: relative;
+            transition: text-shadow var(--transition-normal);
         }
 
-        .logo:hover {
-            transform: scale(1.02);
+        .logo-text::before {
+            content: attr(data-text);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            text-shadow: 0 0 15px var(--color-neon-purple);
+            background: linear-gradient(90deg, var(--color-neon-purple), var(--color-neon-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: blur(0.5px);
+            opacity: 0.9;
+            z-index: -1;
         }
 
         .logo:hover .logo-img {
-            transform: rotate(-15deg);
+            transform: rotate(-15deg) scale(1.2);
+            filter: drop-shadow(0 0 15px rgba(123, 47, 249, 1));
+        }
+
+        .logo:hover .logo-text {
+            text-shadow: 0 0 8px rgba(123, 47, 249, 0.5);
         }
 
         .nav-links {
             display: flex;
-            gap: 1.5rem;
+            gap: 0.8rem;
             align-items: center;
         }
 
         .nav-links a {
-            color: white;
+            color: var(--color-text-secondary);
             text-decoration: none;
-            padding: 0.7rem 1.3rem;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            font-size: 0.95rem;
+            padding: 0.7rem 1.2rem;
+            border-radius: var(--radius-pill);
+            transition: all var(--transition-normal);
+            font-size: 0.92rem;
             font-weight: 500;
+            position: relative;
+            overflow: hidden;
+            background: transparent;
+            border: 1px solid transparent;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-links a::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(120deg, 
+                rgba(123, 47, 249, 0.05), 
+                rgba(79, 140, 255, 0.05));
+            transform: translateX(-100%);
+            transition: transform var(--transition-normal);
+            z-index: -1;
         }
 
         .nav-links a:hover {
-            background: rgba(59, 130, 246, 0.2);
-            transform: translateY(-2px);
+            color: var(--color-text-primary);
+            transform: translateY(-3px);
+            border-color: rgba(123, 47, 249, 0.3);
+            box-shadow: 0 5px 15px rgba(123, 47, 249, 0.15);
+        }
+
+        .nav-links a:hover::before {
+            transform: translateX(0);
         }
 
         .nav-links a[href="registro.html"] {
-            background: #3b82f6;
-            margin-left: 1rem;
+            background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary));
+            color: white;
+            box-shadow: 0 4px 15px rgba(123, 47, 249, 0.3);
+            border: none;
+            position: relative;
+            overflow: hidden;
         }
 
+        .nav-links a[href="registro.html"]::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                to right,
+                transparent,
+                rgba(255, 255, 255, 0.2),
+                transparent
+            );
+            transform: rotate(45deg) translateX(-100%);
+            transition: transform 0.7s ease;
+        }
+
+        .nav-links a[href="registro.html"]:hover {
+            box-shadow: 0 6px 20px rgba(123, 47, 249, 0.5);
+            transform: translateY(-3px) scale(1.05);
+        }
+
+        .nav-links a[href="registro.html"]:hover::before {
+            transform: rotate(45deg) translateX(100%);
+        }
+
+        /* Contenido principal */
         .main-content {
-            margin-top: 150px;
+            margin-top: 130px;
             padding: 4rem 2rem;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
         }
 
-        .glass-container {
-            max-width: 800px;
+        /* Sección soporte */
+        .support-section {
+            max-width: 1000px;
+            width: 100%;
             margin: 0 auto;
-            padding: 3rem;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
+            padding: 3.5rem;
+            background: rgba(12, 12, 32, 0.7);
+            border-radius: var(--radius-lg);
             backdrop-filter: blur(10px);
+            margin-bottom: 4rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-lg), 0 0 0 1px var(--color-border-light);
+            transition: all var(--transition-bounce);
+            border: 1px solid transparent;
+            border-image: linear-gradient(135deg, transparent, rgba(123, 47, 249, 0.3), transparent);
+            border-image-slice: 1;
+            transform-style: preserve-3d;
+            perspective: 1000px;
+        }
+
+        .support-section::before {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            background: linear-gradient(135deg, 
+                rgba(123, 47, 249, 0), 
+                rgba(79, 140, 255, 0.2), 
+                rgba(123, 47, 249, 0));
+            border-radius: var(--radius-lg);
+            z-index: -1;
+            opacity: 0;
+            transition: opacity var(--transition-normal);
+        }
+
+        .support-section:hover {
+            box-shadow: var(--shadow-lg), 0 0 30px rgba(123, 47, 249, 0.3);
+            transform: translateY(-10px) rotateX(2deg) rotateY(-2deg);
+        }
+
+        .support-section:hover::before {
+            opacity: 1;
+        }
+
+        .hologram-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                repeating-linear-gradient(
+                    transparent 0%,
+                    rgba(123, 47, 249, 0.02) 1px,
+                    transparent 2px,
+                    transparent 4px
+                );
+            opacity: 0.5;
+            pointer-events: none;
+            z-index: -1;
+            animation: scanHologram 3s linear infinite;
+        }
+
+        @keyframes scanHologram {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 -100px; }
+        }
+
+        .support-content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
         }
 
         h1 {
-            font-size: 2.5rem;
+            font-size: 3.5rem;
             margin-bottom: 1.5rem;
-            color: #60a5fa;
+            background: linear-gradient(90deg, var(--color-neon-purple), var(--color-neon-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             text-transform: uppercase;
-            letter-spacing: 2px;
+            letter-spacing: 3px;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 800;
+            position: relative;
+            display: inline-block;
         }
 
-        .faq-item {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 1.5rem;
-            margin: 1rem 0;
-            border-radius: 15px;
-            transition: transform 0.3s ease;
+        h1::before {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.3;
+            filter: blur(8px);
+            background: linear-gradient(90deg, var(--color-neon-purple), var(--color-neon-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: textPulse 2s infinite alternate;
         }
 
-        .faq-item:hover {
-            transform: translateY(-3px);
+        @keyframes textPulse {
+            0% { opacity: 0.1; filter: blur(5px); }
+            100% { opacity: 0.2; filter: blur(7px); }
         }
 
-        .faq-question {
-            color: #60a5fa;
+        .support-text {
+            font-size: 1.3rem;
+            line-height: 1.7;
+            margin-bottom: 2.5rem;
+            color: var(--color-text-secondary);
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .contact-methods {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            align-items: center;
+            margin-top: 2rem;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1.5rem 2rem;
+            background: rgba(12, 12, 32, 0.5);
+            border-radius: var(--radius-md);
+            transition: all var(--transition-bounce);
+            border: 1px solid var(--color-border-light);
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .contact-item:hover {
+            transform: translateY(-5px);
+            background: rgba(12, 12, 32, 0.7);
+            border-color: rgba(123, 47, 249, 0.3);
+            box-shadow: var(--shadow-md), 0 0 15px rgba(123, 47, 249, 0.2);
+        }
+
+        .contact-icon {
+            font-size: 2rem;
+            color: var(--color-neon-blue);
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .contact-info {
+            flex-grow: 1;
+        }
+
+        .contact-label {
             font-size: 1.2rem;
-            cursor: pointer;
+            color: var(--color-text-primary);
+            margin-bottom: 0.3rem;
+            font-weight: 600;
         }
 
-        .faq-answer {
-            color: rgba(255, 255, 255, 0.8);
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease-out;
+        .contact-value {
+            color: var(--color-accent-primary);
+            font-size: 1.1rem;
         }
 
+        .contact-value a {
+            color: var(--color-accent-primary);
+            text-decoration: none;
+            transition: color var(--transition-normal);
+        }
+
+        .contact-value a:hover {
+            color: var(--color-neon-blue);
+            text-decoration: underline;
+        }
+
+        /* Media queries */
         @media (max-width: 768px) {
-            nav {
-                top: 10px;
-                width: 95%;
-                padding: 1rem;
+            h1 {
+                font-size: 2.5rem;
             }
             
-            .logo-img {
-                height: 35px;
-            }
-            
-            .logo-text {
-                font-size: 1.4rem;
-            }
-            
-            .nav-links {
-                gap: 0.8rem;
-            }
-            
-            .nav-links a {
-                padding: 0.5rem 1rem;
-                font-size: 0.9rem;
-            }
-            
-            .main-content {
-                margin-top: 120px;
-                padding: 2rem 1rem;
-            }
-            
-            .glass-container {
+            .support-section {
                 padding: 2rem;
             }
             
-            h1 {
-                font-size: 2rem;
+            .support-text {
+                font-size: 1.1rem;
+            }
+            
+            .contact-item {
+                padding: 1.2rem 1.5rem;
+            }
+            
+            .contact-icon {
+                font-size: 1.5rem;
             }
         }
 
         @media (max-width: 480px) {
-            .logo-text {
-                display: none;
+            h1 {
+                font-size: 2rem;
             }
             
-            .logo-img {
-                height: 45px;
+            .support-text {
+                font-size: 1rem;
+            }
+            
+            .contact-item {
+                padding: 1rem;
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .contact-icon {
+                margin-bottom: 0.5rem;
             }
         }
     </style>
 </head>
 <body>
+    <!-- Efectos de fondo -->
+    <div class="grid-overlay"></div>
+    <div class="horizon-lines">
+        <div class="horizon-line" style="transform: rotateX(75deg) translateZ(-100px);"></div>
+        <div class="horizon-line" style="transform: rotateX(75deg) translateZ(-200px);"></div>
+        <div class="horizon-line" style="transform: rotateX(75deg) translateZ(-300px);"></div>
+        <div class="horizon-line" style="transform: rotateX(75deg) translateZ(-400px);"></div>
+        <div class="horizon-line" style="transform: rotateX(75deg) translateZ(-500px);"></div>
+    </div>
+    <div class="particles-container" id="particlesContainer"></div>
+
+    <!-- Navbar -->
     <nav>
         <a href="index.html" class="logo">
-            <img src="logo.png" alt="Logo" class="logo-img">
-            <span class="logo-text">Scrakk</span>
+            <img src="https://i.ibb.co/ZRXTrM6w/ic-launcher.png" alt="Scrakk Logo" class="logo-img">
+            <span class="logo-text" data-text="Scrakk">Scrakk</span>
         </a>
         <div class="nav-links">
+            <a href="index.html#features">Características</a>
+            <a href="index.html#testimonials">Testimonios</a>
             <a href="soporte.html">Soporte</a>
             <a href="login.html">Iniciar Sesión</a>
             <a href="registro.html">Registrarse</a>
         </div>
     </nav>
 
+    <!-- Contenido principal -->
     <main class="main-content">
-        <div class="glass-container">
-            <h1>Soporte Técnico</h1>
-            
-            <div class="faq-item">
-                <div class="faq-question">¿Cómo descargar la aplicación?</div>
-                <div class="faq-answer">Visita nuestra página principal...</div>
+        <section class="support-section">
+            <div class="hologram-effect"></div>
+            <div class="support-content">
+                <h1 data-text="Soporte Técnico">Soporte Técnico</h1>
+                <p class="support-text">
+                    Para obtener soporte sobre nuestro programa, puedes contactarnos a través de los siguientes medios. 
+                    Nuestro equipo estará encantado de ayudarte con cualquier duda o problema que puedas tener.
+                </p>
+                
+                <div class="contact-methods">
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div class="contact-info">
+                            <div class="contact-label">Correo electrónico</div>
+                            <div class="contact-value">
+                                <a href="mailto:scrakkcorporation@gmail.com">scrakkcorporation@gmail.com</a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <i class="fab fa-telegram"></i>
+                        </div>
+                        <div class="contact-info">
+                            <div class="contact-label">Telegram</div>
+                            <div class="contact-value">
+                                <a href="https://t.me/scrakksupport" target="_blank">t.me/scrakksupport</a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <i class="fab fa-instagram"></i>
+                        </div>
+                        <div class="contact-info">
+                            <div class="contact-label">Instagram</div>
+                            <div class="contact-value">
+                                <a href="https://instagram.com/scrakk_official" target="_blank">@scrakk_official</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
+        </section>
     </main>
 
     <script>
-        document.querySelectorAll('.faq-question').forEach(item => {
-            item.addEventListener('click', () => {
-                const answer = item.nextElementSibling;
-                answer.style.maxHeight = answer.style.maxHeight ? null : answer.scrollHeight + 'px';
+        // Inicializar Firebase
+        document.addEventListener('DOMContentLoaded', () => {
+            // Verificar estado de autenticación
+            firebase.auth().onAuthStateChanged((user) => {
+                const navLinks = document.querySelector('.nav-links');
+                if (user) {
+                    navLinks.innerHTML = `
+                        <a href="index.html#features">Características</a>
+                        <a href="index.html#testimonials">Testimonios</a>
+                        <a href="soporte.html">Soporte</a>
+                        <a href="perfil.html">Mi Perfil</a>
+                        <a href="#" onclick="firebase.auth().signOut()">Cerrar Sesión</a>
+                    `;
+                }
             });
         });
     </script>
